@@ -1,4 +1,4 @@
-# 03 — Auth, Tenant & Warehouse Context Prompt
+# DONE 03 — Auth, Tenant & Warehouse Context Prompt
 
 Triển khai auth/context cho native Android app dựa trên endpoint thật đã audit trong `app/specs/api_endpoints_draft.md`.
 
