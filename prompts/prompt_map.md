@@ -30,12 +30,12 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 - Tests run:
   - `git -C app diff --check`
   - `rg -n '"[^"]*(Placeholder|placeholder|screen|foundation|pipeline|mobile-first|Mode:)[^"]*"' app/android/app/src/main/java/vn/delfi/xcloudwms/feature app/android/app/src/main/java/vn/delfi/xcloudwms/core/ui`
-  - `cd app/android && java -version` ❌ môi trường chưa có Java Runtime
-  - `cd app/android && ./gradlew assembleDebug` ❌ dừng ngay vì chưa có Java Runtime, nên chưa đi tới bước check Android SDK/dependency
+  - `cd app/android && java -version` ✅ OpenJDK 17.0.19
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅ pass
 - Commit message: `chore(app): initialize native android compose project`
 - Notes/Risks:
   - Đã scaffold flavors `dev/staging/prod`, `AppConfig`, `AppContainer`, `SessionRepository`, `ScannerManager`, theme paper/light gần scanner PWA và navigation shell.
-  - Môi trường hiện tại chưa có Java Runtime và cũng chưa thấy Android SDK trong `~/Library/Android/sdk`, nên chưa xác nhận được compile/runtime thật của project.
+  - Đã vá dependency `com.google.android.material:material`, suppress warning `compileSdk 35` và lỗi import `weight` trong Compose để `:app:assembleDevDebug` chạy thành công.
 
 ## 2026-05-30 10:44 — Phase 0 scanner parity discovery
 
