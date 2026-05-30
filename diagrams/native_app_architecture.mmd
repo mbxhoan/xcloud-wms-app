@@ -1,0 +1,11 @@
+flowchart TD
+  PDA[PDA Hardware Scanner] --> SDK[SDK/Broadcast/Keyboard/Camera Adapter]
+  SDK --> SM[ScannerManager]
+  SM --> VM[Feature ViewModel]
+  UI[Jetpack Compose Screen] --> VM
+  VM --> UC[UseCase]
+  UC --> REPO[Repository]
+  REPO --> API[Node REST API]
+  REPO --> ROOM[Room/DataStore Cache]
+  API --> BE[Backend Business Logic]
+  BE --> DB[(PostgreSQL/Supabase)]

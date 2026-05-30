@@ -1,0 +1,13 @@
+flowchart LR
+  Home --> GR[GR Receiving]
+  Home --> GI[GI Picking]
+  Home --> PA[PA Put-away]
+  Home --> IC[IC Counting]
+  GR --> API1[Receive/Release/Complete API]
+  GI --> API2[Pick/Complete API]
+  PA --> API3[Draft Lines/Submit API]
+  IC --> API4[Count/Finish API]
+  API1 --> Stock[Stock Summary/Ledger]
+  API2 --> Stock
+  API3 --> Stock
+  API4 --> Stock
