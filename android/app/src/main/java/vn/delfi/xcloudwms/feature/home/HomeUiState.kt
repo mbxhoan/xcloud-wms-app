@@ -6,11 +6,12 @@ data class ModuleShortcut(
 )
 
 data class HomeUiState(
-    val isAuthenticated: Boolean = true,
+    val isAuthenticated: Boolean = false,
     val operatorName: String = "",
+    val tenantLabel: String = "Chưa xác định",
     val warehouseLabel: String = "Chưa chọn",
     val buildEnvironment: String = "",
-    val baseApiUrl: String = "",
-    val networkSummary: String = "",
+    val connectionLabel: String = "Chưa cấu hình",
     val moduleShortcuts: List<ModuleShortcut> = emptyList(),
+    val canSwitchWarehouse: Boolean = false,
 )

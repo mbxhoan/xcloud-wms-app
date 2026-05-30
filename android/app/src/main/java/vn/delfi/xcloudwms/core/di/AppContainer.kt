@@ -5,11 +5,15 @@ import vn.delfi.xcloudwms.BuildConfig
 import vn.delfi.xcloudwms.core.config.AppConfig
 import vn.delfi.xcloudwms.core.logging.LogLevel
 import vn.delfi.xcloudwms.core.logging.SafeLogger
+import vn.delfi.xcloudwms.core.network.DefaultNetworkClient
 import vn.delfi.xcloudwms.core.network.NetworkClient
-import vn.delfi.xcloudwms.core.network.PlaceholderNetworkClient
 import vn.delfi.xcloudwms.core.scanner.ManualScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
-import vn.delfi.xcloudwms.data.session.InMemorySessionRepository
+import vn.delfi.xcloudwms.core.security.SecureSessionStorage
+import vn.delfi.xcloudwms.core.storage.AppPreferences
+import vn.delfi.xcloudwms.data.auth.AuthRepository
+import vn.delfi.xcloudwms.data.auth.SupabaseAuthRepository
+import vn.delfi.xcloudwms.data.session.DefaultSessionRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
 
 interface AppContainer {
@@ -30,8 +34,18 @@ class DefaultAppContainer(
         minimumLevel = if (appConfig.buildEnvironment == "prod") LogLevel.INFO else LogLevel.DEBUG,
     )
 
-    override val networkClient: NetworkClient = PlaceholderNetworkClient(
-        config = appConfig,
+    override val networkClient: NetworkClient = DefaultNetworkClient(
+        appConfig = appConfig,
+        logger = logger,
+    )
+
+    private val appPreferences = AppPreferences(application)
+    private val secureSessionStorage = SecureSessionStorage(application)
+
+    private val authRepository: AuthRepository = SupabaseAuthRepository(
+        networkClient = networkClient,
+        appPreferences = appPreferences,
+        secureSessionStorage = secureSessionStorage,
         logger = logger,
     )
 
@@ -40,8 +54,9 @@ class DefaultAppContainer(
         application = application,
     )
 
-    override val sessionRepository: SessionRepository = InMemorySessionRepository(
+    override val sessionRepository: SessionRepository = DefaultSessionRepository(
         appConfig = appConfig,
+        authRepository = authRepository,
         logger = logger,
     )
 }

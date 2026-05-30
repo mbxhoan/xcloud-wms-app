@@ -10,37 +10,26 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import vn.delfi.xcloudwms.core.config.AppConfig
-import vn.delfi.xcloudwms.core.network.NetworkClient
 import vn.delfi.xcloudwms.data.session.SessionRepository
 
 class HomeViewModel(
-    private val appConfig: AppConfig,
     private val sessionRepository: SessionRepository,
-    private val networkClient: NetworkClient,
 ) : ViewModel() {
     val uiState: StateFlow<HomeUiState> = sessionRepository.session.map { session ->
         HomeUiState(
             isAuthenticated = session.isAuthenticated,
             operatorName = session.displayName ?: "Chưa đăng nhập",
-            warehouseLabel = session.warehouseLabel ?: "Chưa chọn",
-            buildEnvironment = appConfig.buildEnvironment.uppercase(),
-            baseApiUrl = appConfig.normalizedBaseApiUrl,
-            networkSummary = networkClient.summary(),
-            moduleShortcuts = placeholderShortcuts,
+            tenantLabel = session.tenant?.label ?: "Chưa xác định",
+            warehouseLabel = session.currentWarehouse?.label ?: "Chưa chọn",
+            buildEnvironment = session.buildEnvironment.uppercase(),
+            connectionLabel = session.connectionLabel ?: "Chưa cấu hình",
+            moduleShortcuts = buildMenuShortcuts(session.permissions),
+            canSwitchWarehouse = session.allowedWarehouses.size > 1,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HomeUiState(
-            isAuthenticated = sessionRepository.session.value.isAuthenticated,
-            operatorName = sessionRepository.session.value.displayName ?: "Chưa đăng nhập",
-            warehouseLabel = sessionRepository.session.value.warehouseLabel ?: "Chưa chọn",
-            buildEnvironment = appConfig.buildEnvironment.uppercase(),
-            baseApiUrl = appConfig.normalizedBaseApiUrl,
-            networkSummary = networkClient.summary(),
-            moduleShortcuts = placeholderShortcuts,
-        ),
+        initialValue = HomeUiState(),
     )
 
     fun logout() {
@@ -49,27 +38,76 @@ class HomeViewModel(
         }
     }
 
-    companion object {
-        private val placeholderShortcuts = listOf(
-            ModuleShortcut(title = "Nhận hàng", note = "Sẽ triển khai ở bước tiếp theo"),
-            ModuleShortcut(title = "Xuất hàng", note = "Sẽ triển khai ở bước tiếp theo"),
-            ModuleShortcut(title = "Sắp xếp kho", note = "Sẽ triển khai ở bước tiếp theo"),
-            ModuleShortcut(title = "Kiểm kê", note = "Sẽ triển khai ở bước tiếp theo"),
-            ModuleShortcut(title = "Tra cứu tồn", note = "Sẽ triển khai ở bước tiếp theo"),
+    private fun buildMenuShortcuts(permissions: Set<String>): List<ModuleShortcut> {
+        val moduleDefinitions = listOf(
+            ModuleDefinition(
+                title = "Nhận hàng",
+                note = "Xem và thao tác phiếu nhập được phân công.",
+                requiredPermissions = setOf("gr.scan"),
+            ),
+            ModuleDefinition(
+                title = "Xuất hàng",
+                note = "Xem và thao tác phiếu xuất được phân công.",
+                requiredPermissions = setOf("gi.scan"),
+            ),
+            ModuleDefinition(
+                title = "Kiểm kê",
+                note = "Quét và ghi nhận số lượng kiểm kê theo quyền hiện tại.",
+                requiredPermissions = setOf("inventory.scan"),
+            ),
+            ModuleDefinition(
+                title = "Sắp xếp kho",
+                note = "Chuyển vị trí hàng hóa trong cùng kho làm việc.",
+                requiredPermissions = setOf("inventory.scan"),
+            ),
+            ModuleDefinition(
+                title = "Tra cứu tồn",
+                note = "Tra cứu nhanh theo mã hàng, lô hoặc serial.",
+                requiredPermissions = setOf("inventory.scan"),
+            ),
+            ModuleDefinition(
+                title = "Đơn vị chứa",
+                note = "Xem thao tác liên quan tới đơn vị chứa khi tenant đã bật tính năng.",
+                requiredPermissions = setOf("lpn.read"),
+            ),
         )
 
+        val shortcuts = moduleDefinitions.filter { definition ->
+            definition.requiredPermissions.all(permissions::contains)
+        }.map { definition ->
+            ModuleShortcut(
+                title = definition.title,
+                note = definition.note,
+            )
+        }
+
+        return if (shortcuts.isEmpty()) {
+            listOf(
+                ModuleShortcut(
+                    title = "Chưa có danh mục thao tác",
+                    note = "Tài khoản hiện chưa được cấp quyền cho module quét nào.",
+                ),
+            )
+        } else {
+            shortcuts
+        }
+    }
+
+    companion object {
         fun factory(
-            appConfig: AppConfig,
             sessionRepository: SessionRepository,
-            networkClient: NetworkClient,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 HomeViewModel(
-                    appConfig = appConfig,
                     sessionRepository = sessionRepository,
-                    networkClient = networkClient,
                 )
             }
         }
     }
+
+    private data class ModuleDefinition(
+        val title: String,
+        val note: String,
+        val requiredPermissions: Set<String>,
+    )
 }

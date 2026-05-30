@@ -18,6 +18,31 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-05-30 15:11 — Phase 2 auth tenant và warehouse context
+
+- Prompt summary: Triển khai auth/context cho native Android app theo endpoint thật đã audit trong `app/specs/api_endpoints_draft.md`: login Supabase Auth, secure token storage, session restore/refresh, load profile/tenant/permissions/warehouses, chọn kho hiện tại và home menu theo quyền.
+- Ticket/Issue ID: APP-PHASE2
+- Scope: `app/android + docs` - thêm auth/context native thật, không đổi DB/RPC/API contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/{config,error,network,security,storage}/**`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/{auth,session}/**`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/UserSession.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/{login,home,splash,warehouse}/**`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/**`
+  - `app/android/app/src/main/res/values/strings.xml`
+  - `app/prompts/prompt_map.md`
+  - `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅ pass trước khi làm
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅ pass sau khi triển khai auth/context
+  - `cd app/android && git diff --check`
+  - `cd app/android && rg -n 'Tenant|Menu|Scanner|Broadcast|Camera|API key|URL kết nối|Connection|Home|Login' app/src/main/java/vn/delfi/xcloudwms app/src/main/res --glob '!**/build/**'`
+- Commit message: `feat(app-auth): add login tenant and warehouse context`
+- Notes/Risks:
+  - Login thật hiện yêu cầu nhập thủ công `địa chỉ kết nối` và `khóa truy cập công khai` vì repo chưa có QR/runtime config được cấp sẵn; điều này bám đúng kết luận audit là không được hard-code Supabase host/key.
+  - Device license/pending-device chưa nằm trong prompt phase này nên chưa được native hóa; session restore hiện tập trung vào auth/profile/permission/warehouse context.
+  - `SupabaseAuthRepository` còn warning unchecked cast do phải chịu được nhiều shape JSON khác nhau từ `profiles/users/permissions/user_warehouses`.
+
 ## 2026-05-30 11:13 — Phase 1 Android Compose foundation
 
 - Prompt summary: Tạo native Android project trong `app/android` cho Xcloud WMS Scanner với Kotlin, Jetpack Compose, Material 3, Navigation Compose, ViewModel + StateFlow, logger an toàn, network/scanner placeholders và ba màn chờ `Đăng nhập` / `Trang chủ` / `Kiểm tra máy quét`.

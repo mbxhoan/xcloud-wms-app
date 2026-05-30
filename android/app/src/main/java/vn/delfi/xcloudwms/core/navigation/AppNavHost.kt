@@ -2,32 +2,95 @@ package vn.delfi.xcloudwms.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import vn.delfi.xcloudwms.core.di.AppContainer
+import vn.delfi.xcloudwms.domain.model.SessionStatus
 import vn.delfi.xcloudwms.feature.home.HomeScreen
 import vn.delfi.xcloudwms.feature.home.HomeViewModel
 import vn.delfi.xcloudwms.feature.login.LoginScreen
 import vn.delfi.xcloudwms.feature.login.LoginViewModel
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestScreen
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestViewModel
+import vn.delfi.xcloudwms.feature.splash.SplashScreen
+import vn.delfi.xcloudwms.feature.warehouse.NoWarehouseScreen
+import vn.delfi.xcloudwms.feature.warehouse.WarehouseSwitchScreen
+import vn.delfi.xcloudwms.feature.warehouse.WarehouseSwitchViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavHost(appContainer: AppContainer) {
     val navController = rememberNavController()
-    val startDestination = if (appContainer.sessionRepository.session.value.isAuthenticated) {
-        AppDestination.Home.route
-    } else {
-        AppDestination.Login.route
+    val coroutineScope = rememberCoroutineScope()
+    val session by appContainer.sessionRepository.session.collectAsStateWithLifecycle()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    LaunchedEffect(session.status, currentRoute) {
+        val shouldNavigateTo = when (session.status) {
+            SessionStatus.RESTORING -> {
+                if (currentRoute != AppDestination.Splash.route) AppDestination.Splash.route else null
+            }
+
+            SessionStatus.UNAUTHENTICATED -> {
+                if (currentRoute != AppDestination.Login.route) AppDestination.Login.route else null
+            }
+
+            SessionStatus.WAREHOUSE_SELECTION_REQUIRED -> {
+                if (currentRoute != AppDestination.WarehouseSwitch.route) {
+                    AppDestination.WarehouseSwitch.route
+                } else {
+                    null
+                }
+            }
+
+            SessionStatus.NO_WAREHOUSE_ASSIGNED -> {
+                if (currentRoute != AppDestination.NoWarehouse.route) AppDestination.NoWarehouse.route else null
+            }
+
+            SessionStatus.AUTHENTICATED -> {
+                if (
+                    currentRoute == null ||
+                    currentRoute == AppDestination.Splash.route ||
+                    currentRoute == AppDestination.Login.route ||
+                    currentRoute == AppDestination.WarehouseSwitch.route ||
+                    currentRoute == AppDestination.NoWarehouse.route
+                ) {
+                    AppDestination.Home.route
+                } else {
+                    null
+                }
+            }
+        }
+
+        if (shouldNavigateTo != null) {
+            navController.navigate(shouldNavigateTo) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        }
     }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = AppDestination.Splash.route,
     ) {
+        composable(AppDestination.Splash.route) {
+            LaunchedEffect(Unit) {
+                appContainer.sessionRepository.restoreSession()
+            }
+            SplashScreen()
+        }
+
         composable(AppDestination.Login.route) {
             val viewModel: LoginViewModel = viewModel(
                 factory = LoginViewModel.factory(
@@ -35,45 +98,52 @@ fun AppNavHost(appContainer: AppContainer) {
                     logger = appContainer.logger,
                 ),
             )
-            val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-
-            LaunchedEffect(uiState.value.isAuthenticated) {
-                if (uiState.value.isAuthenticated) {
-                    navController.navigate(AppDestination.Home.route) {
-                        popUpTo(AppDestination.Login.route) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
-                }
-            }
-
             LoginScreen(viewModel = viewModel)
+        }
+
+        composable(AppDestination.WarehouseSwitch.route) {
+            val viewModel: WarehouseSwitchViewModel = viewModel(
+                factory = WarehouseSwitchViewModel.factory(
+                    sessionRepository = appContainer.sessionRepository,
+                ),
+            )
+            WarehouseSwitchScreen(
+                viewModel = viewModel,
+                onBack = if (session.currentWarehouse != null) {
+                    { navController.popBackStack() }
+                } else {
+                    null
+                },
+                onLogout = {
+                    coroutineScope.launch {
+                        appContainer.sessionRepository.signOut()
+                    }
+                },
+            )
+        }
+
+        composable(AppDestination.NoWarehouse.route) {
+            NoWarehouseScreen(
+                userLabel = session.displayName ?: session.email ?: "Người dùng",
+                onLogout = {
+                    coroutineScope.launch {
+                        appContainer.sessionRepository.signOut()
+                    }
+                },
+            )
         }
 
         composable(AppDestination.Home.route) {
             val viewModel: HomeViewModel = viewModel(
                 factory = HomeViewModel.factory(
-                    appConfig = appContainer.appConfig,
                     sessionRepository = appContainer.sessionRepository,
-                    networkClient = appContainer.networkClient,
                 ),
             )
-            val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-
-            LaunchedEffect(uiState.value.isAuthenticated) {
-                if (!uiState.value.isAuthenticated) {
-                    navController.navigate(AppDestination.Login.route) {
-                        popUpTo(AppDestination.Home.route) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
-                }
-            }
-
             HomeScreen(
                 viewModel = viewModel,
+                onOpenWarehouseSwitch = {
+                    navController.navigate(AppDestination.WarehouseSwitch.route)
+                },
                 onOpenScannerTest = {
                     navController.navigate(AppDestination.ScannerTest.route)
                 },

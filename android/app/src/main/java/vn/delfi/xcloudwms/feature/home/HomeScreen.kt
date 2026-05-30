@@ -2,10 +2,8 @@ package vn.delfi.xcloudwms.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -22,20 +20,19 @@ import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
+    onOpenWarehouseSwitch: () -> Unit,
     onOpenScannerTest: () -> Unit,
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
     XcloudScaffold(
         title = "Trang chủ",
-        subtitle = "Khung giao diện tối ưu cho PDA quét mã. Chưa có module nghiệp vụ thật ở bước này.",
+        subtitle = "Danh mục thao tác được lọc theo quyền hiện tại và kho đang làm việc.",
     ) {
         SectionCard(title = "Ngữ cảnh hiện tại") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    InfoPill(text = uiState.value.buildEnvironment)
-                    InfoPill(text = "Kho: ${uiState.value.warehouseLabel}")
-                }
+                InfoPill(text = uiState.value.buildEnvironment)
+                InfoPill(text = "Kho: ${uiState.value.warehouseLabel}")
 
                 Text(
                     text = "Nhân viên: ${uiState.value.operatorName}",
@@ -43,19 +40,19 @@ fun HomeScreen(
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    text = "API: ${uiState.value.baseApiUrl}",
+                    text = "Đơn vị: ${uiState.value.tenantLabel}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = uiState.value.networkSummary,
+                    text = "Kết nối: ${uiState.value.connectionLabel}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
 
-        SectionCard(title = "Module dự kiến") {
+        SectionCard(title = "Danh mục theo quyền") {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 uiState.value.moduleShortcuts.forEach { shortcut ->
                     SectionCard {
@@ -73,14 +70,25 @@ fun HomeScreen(
             }
         }
 
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (uiState.value.canSwitchWarehouse) {
+                OutlinedButton(
+                    onClick = onOpenWarehouseSwitch,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp),
+                ) {
+                    Text("Đổi kho làm việc")
+                }
+            }
+
             Button(
                 onClick = onOpenScannerTest,
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .heightIn(min = 52.dp),
             ) {
                 Text("Kiểm tra máy quét")
@@ -89,7 +97,7 @@ fun HomeScreen(
             OutlinedButton(
                 onClick = viewModel::logout,
                 modifier = Modifier
-                    .width(132.dp)
+                    .fillMaxWidth()
                     .heightIn(min = 52.dp),
             ) {
                 Text("Đăng xuất")

@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 
 enum class ScanSource(val label: String) {
-    SDK("SDK"),
-    BROADCAST("Broadcast"),
+    SDK("Bộ SDK"),
+    BROADCAST("Tín hiệu phát"),
     KEYBOARD_WEDGE("Phím quét"),
-    CAMERA("Camera"),
+    CAMERA("Máy ảnh"),
     MANUAL("Thủ công"),
 }
 
@@ -21,7 +21,7 @@ enum class ScannerMode(val label: String) {
     LOCATION("Vị trí"),
     PRODUCT("Sản phẩm"),
     LOT("Lô"),
-    SERIAL("Serial"),
+    SERIAL("Số seri"),
     DOCUMENT("Chứng từ"),
 }
 

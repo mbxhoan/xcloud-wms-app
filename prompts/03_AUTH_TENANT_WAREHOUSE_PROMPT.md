@@ -52,3 +52,10 @@ User login được, app lưu token an toàn, load profile/tenant/warehouses, ch
 - Checklist verify.
 - Commit message: `feat(app-auth): add login tenant and warehouse context`
 - Entry trong `app/prompts/prompt_map.md`.
+
+Before implementing Auth, first run cd app/android && ./gradlew :app:assembleDevDebug.
+If build fails, fix build issues first and stop.
+Do not modify scanner/, webapp/, or supabase/.
+Do not invent REST /scanner/* APIs.
+Follow the real scanner PWA contracts documented in app/specs/api_endpoints_draft.md.
+Stop after native Auth + tenant + warehouse context compiles and basic login/navigation flow is verifiable.

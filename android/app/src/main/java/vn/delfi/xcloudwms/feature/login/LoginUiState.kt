@@ -4,7 +4,17 @@ data class LoginUiState(
     val operatorCode: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
-    val isAuthenticated: Boolean = false,
-    val errorMessage: String? = null,
-    val helperMessage: String = "Màn này mới dựng lớp nền native, chưa gọi API xác thực thật.",
-)
+    val loginErrorMessage: String? = null,
+    val isPasswordVisible: Boolean = false,
+    val connectionConfigured: Boolean = false,
+    val connectionLabel: String? = null,
+    val connectionUrl: String = "",
+    val anonKey: String = "",
+    val isTestingConnection: Boolean = false,
+    val isSavingConnection: Boolean = false,
+    val connectionErrorMessage: String? = null,
+    val connectionSuccessMessage: String? = null,
+) {
+    val isConnectionBusy: Boolean
+        get() = isTestingConnection || isSavingConnection
+}
