@@ -64,6 +64,7 @@ class HomeViewModel(
                 title = "Tra cứu tồn",
                 note = "Tra cứu nhanh theo mã hàng, lô hoặc serial.",
                 requiredPermissions = setOf("inventory.scan"),
+                actionKey = ACTION_STOCK_LOOKUP,
             ),
             ModuleDefinition(
                 title = "Đơn vị chứa",
@@ -78,6 +79,7 @@ class HomeViewModel(
             ModuleShortcut(
                 title = definition.title,
                 note = definition.note,
+                actionKey = definition.actionKey,
             )
         }
 
@@ -94,6 +96,8 @@ class HomeViewModel(
     }
 
     companion object {
+        const val ACTION_STOCK_LOOKUP = "stock_lookup"
+
         fun factory(
             sessionRepository: SessionRepository,
         ): ViewModelProvider.Factory = viewModelFactory {
@@ -109,5 +113,6 @@ class HomeViewModel(
         val title: String,
         val note: String,
         val requiredPermissions: Set<String>,
+        val actionKey: String? = null,
     )
 }

@@ -5,6 +5,7 @@ import vn.delfi.xcloudwms.BuildConfig
 import vn.delfi.xcloudwms.core.config.AppConfig
 import vn.delfi.xcloudwms.core.logging.LogLevel
 import vn.delfi.xcloudwms.core.logging.SafeLogger
+import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.network.DefaultNetworkClient
 import vn.delfi.xcloudwms.core.network.NetworkClient
 import vn.delfi.xcloudwms.core.scanner.DefaultBarcodeParser
@@ -21,6 +22,8 @@ import vn.delfi.xcloudwms.data.auth.AuthRepository
 import vn.delfi.xcloudwms.data.auth.SupabaseAuthRepository
 import vn.delfi.xcloudwms.data.session.DefaultSessionRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
+import vn.delfi.xcloudwms.data.stock.DefaultStockLookupRepository
+import vn.delfi.xcloudwms.data.stock.StockLookupRepository
 
 interface AppContainer {
     val appConfig: AppConfig
@@ -28,6 +31,8 @@ interface AppContainer {
     val networkClient: NetworkClient
     val scannerManager: ScannerManager
     val sessionRepository: SessionRepository
+    val stockLookupRepository: StockLookupRepository
+    val connectivityObserver: ConnectivityObserver
 }
 
 class DefaultAppContainer(
@@ -82,4 +87,13 @@ class DefaultAppContainer(
         authRepository = authRepository,
         logger = logger,
     )
+
+    override val stockLookupRepository: StockLookupRepository = DefaultStockLookupRepository(
+        networkClient = networkClient,
+        appPreferences = appPreferences,
+        secureSessionStorage = secureSessionStorage,
+        logger = logger,
+    )
+
+    override val connectivityObserver: ConnectivityObserver = ConnectivityObserver(application)
 }

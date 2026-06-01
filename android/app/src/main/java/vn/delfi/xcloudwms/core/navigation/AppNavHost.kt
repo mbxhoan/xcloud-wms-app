@@ -20,6 +20,8 @@ import vn.delfi.xcloudwms.feature.login.LoginViewModel
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestScreen
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestViewModel
 import vn.delfi.xcloudwms.feature.splash.SplashScreen
+import vn.delfi.xcloudwms.feature.stocklookup.StockLookupScreen
+import vn.delfi.xcloudwms.feature.stocklookup.StockLookupViewModel
 import vn.delfi.xcloudwms.feature.warehouse.NoWarehouseScreen
 import vn.delfi.xcloudwms.feature.warehouse.WarehouseSwitchScreen
 import vn.delfi.xcloudwms.feature.warehouse.WarehouseSwitchViewModel
@@ -147,6 +149,25 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenScannerTest = {
                     navController.navigate(AppDestination.ScannerTest.route)
                 },
+                onOpenStockLookup = {
+                    navController.navigate(AppDestination.StockLookup.route)
+                },
+            )
+        }
+
+        composable(AppDestination.StockLookup.route) {
+            val viewModel: StockLookupViewModel = viewModel(
+                factory = StockLookupViewModel.factory(
+                    scannerManager = appContainer.scannerManager,
+                    stockLookupRepository = appContainer.stockLookupRepository,
+                    sessionRepository = appContainer.sessionRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            StockLookupScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
             )
         }
 

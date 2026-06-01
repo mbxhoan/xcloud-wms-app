@@ -1,5 +1,6 @@
 package vn.delfi.xcloudwms.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenWarehouseSwitch: () -> Unit,
     onOpenScannerTest: () -> Unit,
+    onOpenStockLookup: () -> Unit,
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -55,7 +57,11 @@ fun HomeScreen(
         SectionCard(title = "Danh mục theo quyền") {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 uiState.value.moduleShortcuts.forEach { shortcut ->
-                    SectionCard {
+                    val cardModifier = when (shortcut.actionKey) {
+                        HomeViewModel.ACTION_STOCK_LOOKUP -> Modifier.clickable { onOpenStockLookup() }
+                        else -> Modifier
+                    }
+                    SectionCard(modifier = cardModifier) {
                         Text(
                             text = shortcut.title,
                             style = MaterialTheme.typography.titleMedium,

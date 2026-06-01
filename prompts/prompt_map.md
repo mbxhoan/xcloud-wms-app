@@ -18,6 +18,33 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-01 14:40 — Phase 5 stock lookup (read-only)
+
+- Prompt summary: Triển khai Stock Lookup cho `app/android` (prompt 05): quét/nhập mã → xem tồn read-only theo kho hiện tại qua RPC audited `rpc_traceability_lookup`. Result cards (match/summary/tồn theo vị trí), empty state, error/retry, offline banner; dùng lại scanner core + auth/warehouse context.
+- Ticket/Issue ID: APP-PHASE5
+- Scope: `app/android + docs` - chỉ gọi đọc RPC sẵn có, không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/StockLookup.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/stock/**` (`StockLookupRepository`, `StockRowFilter`, `LookupErrorMapper`)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/network/ConnectivityObserver.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/**` (Screen/ViewModel/UiState)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/{AppDestination,AppNavHost}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/{HomeUiState,HomeViewModel,HomeScreen}.kt`
+  - `app/android/app/src/main/AndroidManifest.xml` (thêm `ACCESS_NETWORK_STATE`)
+  - `app/android/app/src/test/java/vn/delfi/xcloudwms/data/stock/**`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `./gradlew -p app/android :app:testDevDebugUnitTest` ✅ pass (StockRowFilter + LookupErrorMapper)
+  - `./gradlew -p app/android :app:assembleDevDebug` ✅ pass
+  - `git -C app diff --check` ✅ no whitespace error
+- Commit message: `feat(app-stock): add scanner stock lookup`
+- Notes/Risks:
+  - RPC `rpc_traceability_lookup` không nhận param kho; server scope theo `fn_my_warehouse_ids()`. App lọc hiển thị dòng theo kho hiện tại (view-filter, read-only) + switch "Xem tất cả kho được phân quyền" để "đổi kho → kết quả đổi".
+  - Token chưa tự refresh ở tầng lookup: 401 → báo phiên hết hạn, đăng nhập lại.
+  - Chưa render `events`/`active_lpns`/`lpn_contents_preview` (prompt không yêu cầu).
+  - Test pure (filter + error map) do org.json không chạy trong unit test thường; parse verify qua build + manual.
+
 ## 2026-06-01 10:15 — Phase 4 scanner abstraction & PDA input adapters
 
 - Prompt summary: Triển khai scanner core cho `app/android` (prompt 04): mọi barcode/QR đi qua `ScannerManager`; thêm domain models (`ScanEvent`/`ScanSource`/`ScannerMode`/`ParsedBarcode`), core interfaces (`ScannerManager`/`ScannerAdapter`/`BarcodeParser`/`FeedbackManager`), adapters (keyboard wedge, broadcast intent cấu hình được, manual, camera placeholder), debounce chống trùng cấu hình được, beep/rung feedback và mở rộng màn Kiểm tra máy quét.

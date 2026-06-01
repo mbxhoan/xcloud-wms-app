@@ -7,4 +7,5 @@ enum class AppDestination(val route: String) {
     NoWarehouse("no_warehouse"),
     Home("home"),
     ScannerTest("scanner_test"),
+    StockLookup("stock_lookup"),
 }

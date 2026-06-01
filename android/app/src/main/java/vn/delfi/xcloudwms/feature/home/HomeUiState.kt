@@ -3,6 +3,7 @@ package vn.delfi.xcloudwms.feature.home
 data class ModuleShortcut(
     val title: String,
     val note: String,
+    val actionKey: String? = null,
 )
 
 data class HomeUiState(
