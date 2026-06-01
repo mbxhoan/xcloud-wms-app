@@ -8,4 +8,5 @@ enum class AppDestination(val route: String) {
     Home("home"),
     ScannerTest("scanner_test"),
     StockLookup("stock_lookup"),
+    Putaway("putaway"),
 }

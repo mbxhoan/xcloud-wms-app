@@ -22,6 +22,8 @@ import vn.delfi.xcloudwms.data.auth.AuthRepository
 import vn.delfi.xcloudwms.data.auth.SupabaseAuthRepository
 import vn.delfi.xcloudwms.data.session.DefaultSessionRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
+import vn.delfi.xcloudwms.data.putaway.DefaultPutawayRepository
+import vn.delfi.xcloudwms.data.putaway.PutawayRepository
 import vn.delfi.xcloudwms.data.stock.DefaultStockLookupRepository
 import vn.delfi.xcloudwms.data.stock.StockLookupRepository
 
@@ -32,6 +34,7 @@ interface AppContainer {
     val scannerManager: ScannerManager
     val sessionRepository: SessionRepository
     val stockLookupRepository: StockLookupRepository
+    val putawayRepository: PutawayRepository
     val connectivityObserver: ConnectivityObserver
 }
 
@@ -89,6 +92,13 @@ class DefaultAppContainer(
     )
 
     override val stockLookupRepository: StockLookupRepository = DefaultStockLookupRepository(
+        networkClient = networkClient,
+        appPreferences = appPreferences,
+        secureSessionStorage = secureSessionStorage,
+        logger = logger,
+    )
+
+    override val putawayRepository: PutawayRepository = DefaultPutawayRepository(
         networkClient = networkClient,
         appPreferences = appPreferences,
         secureSessionStorage = secureSessionStorage,

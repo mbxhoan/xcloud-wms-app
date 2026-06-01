@@ -100,6 +100,7 @@ interface ScannerManager {
 
 Luôn trả về:
 
+- Nguyên nhân (nếu có)
 - File đã sửa.
 - Lệnh đã chạy.
 - Rủi ro còn lại.

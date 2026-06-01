@@ -17,6 +17,8 @@ import vn.delfi.xcloudwms.feature.home.HomeScreen
 import vn.delfi.xcloudwms.feature.home.HomeViewModel
 import vn.delfi.xcloudwms.feature.login.LoginScreen
 import vn.delfi.xcloudwms.feature.login.LoginViewModel
+import vn.delfi.xcloudwms.feature.putaway.PutawayScreen
+import vn.delfi.xcloudwms.feature.putaway.PutawayViewModel
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestScreen
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestViewModel
 import vn.delfi.xcloudwms.feature.splash.SplashScreen
@@ -152,6 +154,9 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenStockLookup = {
                     navController.navigate(AppDestination.StockLookup.route)
                 },
+                onOpenPutaway = {
+                    navController.navigate(AppDestination.Putaway.route)
+                },
             )
         }
 
@@ -166,6 +171,22 @@ fun AppNavHost(appContainer: AppContainer) {
                 ),
             )
             StockLookupScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(AppDestination.Putaway.route) {
+            val viewModel: PutawayViewModel = viewModel(
+                factory = PutawayViewModel.factory(
+                    scannerManager = appContainer.scannerManager,
+                    putawayRepository = appContainer.putawayRepository,
+                    sessionRepository = appContainer.sessionRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            PutawayScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )

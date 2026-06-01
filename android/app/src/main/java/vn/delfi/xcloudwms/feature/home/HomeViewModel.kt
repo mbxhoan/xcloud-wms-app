@@ -59,6 +59,7 @@ class HomeViewModel(
                 title = "Sắp xếp kho",
                 note = "Chuyển vị trí hàng hóa trong cùng kho làm việc.",
                 requiredPermissions = setOf("inventory.scan"),
+                actionKey = ACTION_PUTAWAY,
             ),
             ModuleDefinition(
                 title = "Tra cứu tồn",
@@ -97,6 +98,7 @@ class HomeViewModel(
 
     companion object {
         const val ACTION_STOCK_LOOKUP = "stock_lookup"
+        const val ACTION_PUTAWAY = "putaway"
 
         fun factory(
             sessionRepository: SessionRepository,

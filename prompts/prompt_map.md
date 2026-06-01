@@ -18,6 +18,32 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-01 17:30 — Phase 6 PA put-away scan session
+
+- Prompt summary: Triển khai module PA (Put-away/Internal transfer) native cho `app/android` (prompt 06), parity scanner PWA `PaPutawayClient.tsx`: tạo phiên DRAFT (`rpc_pa_start_session`), stepper quét vị trí nguồn → sản phẩm/serial/lot → số lượng → vị trí đích, thêm/xoá dòng nháp (`rpc_pa_add_line`/`rpc_pa_delete_line`), live stock check (`rpc_pa_live_stock_check`), submit (`rpc_pa_submit` + hậu xử lý `rpc_process_inventory_threshold_events`). Validation UX, chặn trùng serial/lot/none phía client, map mã lỗi nghiệp vụ sang tiếng Việt, chống double-submit, offline banner.
+- Ticket/Issue ID: APP-PHASE6
+- Scope: `app/android + docs` - chỉ gọi RPC/REST PA đã audit, không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/Putaway.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/putaway/**` (`PutawayRepository`, `PutawayErrorMapper`, `PutawayLineValidator`)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/putaway/**` (UiState/ViewModel/Screen)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/{AppDestination,AppNavHost}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/{HomeViewModel,HomeScreen}.kt`
+  - `app/android/app/src/test/java/vn/delfi/xcloudwms/data/putaway/**`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `./gradlew :app:testDevDebugUnitTest` ✅ pass (PutawayErrorMapper + PutawayLineValidator)
+  - `./gradlew :app:assembleDevDebug` ✅ pass
+  - `git -C app diff --check` ✅ no whitespace error
+- Commit message: `feat(app-pa): implement putaway scan session flow`
+- Notes/Risks:
+  - Backend `rpc_pa_submit` không nhận idempotency request id (parity scanner). Chống double-commit bằng in-flight guard + chặn submit khi phiên không còn DRAFT; chưa có dedupe phía server.
+  - Native dùng kho hiện tại từ session làm `p_warehouse_id` (không thêm warehouse selector toàn cục) → khác scanner ở chỗ scanner chọn kho ngay trong màn PA.
+  - Serial/lot resolution truy vấn trực tiếp `serials`/`lots`/`stock_summary` qua PostgREST (giống scanner); phụ thuộc RLS cho phép đọc các bảng này với quyền PA user.
+  - Parse JSON nằm trong repo (org.json) nên chỉ verify qua build; unit test phủ logic thuần (error map + validator).
+  - Menu Home gate PA bằng `inventory.scan` (đồng bộ các module hiện có); backend vẫn enforce `SCANNER_PA_CREATE`/`SCANNER_PA_SUBMIT`.
+
 ## 2026-06-01 14:40 — Phase 5 stock lookup (read-only)
 
 - Prompt summary: Triển khai Stock Lookup cho `app/android` (prompt 05): quét/nhập mã → xem tồn read-only theo kho hiện tại qua RPC audited `rpc_traceability_lookup`. Result cards (match/summary/tồn theo vị trí), empty state, error/retry, offline banner; dùng lại scanner core + auth/warehouse context.
