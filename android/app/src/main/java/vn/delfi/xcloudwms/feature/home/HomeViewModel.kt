@@ -49,6 +49,7 @@ class HomeViewModel(
                 title = "Xuất hàng",
                 note = "Xem và thao tác phiếu xuất được phân công.",
                 requiredPermissions = setOf("gi.scan"),
+                actionKey = ACTION_GOODS_ISSUE,
             ),
             ModuleDefinition(
                 title = "Kiểm kê",
@@ -99,6 +100,7 @@ class HomeViewModel(
     companion object {
         const val ACTION_STOCK_LOOKUP = "stock_lookup"
         const val ACTION_PUTAWAY = "putaway"
+        const val ACTION_GOODS_ISSUE = "goods_issue"
 
         fun factory(
             sessionRepository: SessionRepository,

@@ -9,4 +9,11 @@ enum class AppDestination(val route: String) {
     ScannerTest("scanner_test"),
     StockLookup("stock_lookup"),
     Putaway("putaway"),
+    GoodsIssueList("goods_issue"),
+    GoodsIssuePick("goods_issue/{headerId}"),
+    ;
+
+    companion object {
+        fun goodsIssuePickRoute(headerId: String): String = "goods_issue/$headerId"
+    }
 }

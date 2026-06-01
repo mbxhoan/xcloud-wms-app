@@ -21,6 +21,7 @@ sealed interface NetworkResult<out T> {
 enum class HttpMethod {
     GET,
     POST,
+    PATCH,
 }
 
 data class NetworkRequest(

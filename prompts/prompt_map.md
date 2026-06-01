@@ -18,6 +18,33 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-01 18:40 — Phase 7 GI goods issue picking
+
+- Prompt summary: Triển khai module Goods Issue Picking native cho `app/android` (prompt 07), parity scanner PWA `GiPickClient.tsx` + route `/app/outbound`: danh sách phiếu xuất được phân công theo kho (CREATED/PICKING/PICKED), mở phiếu xem tiến độ pick từng dòng, auto `rpc_gi_start_picking`, quét serial (`rpc_gi_check_serial_scan` + `rpc_gi_bind_serial_to_summary_line` cho summary mode, hoặc cập nhật `gi_details.picked_quantity`), quét lot (`rpc_gi_check_lot_scan` + cập nhật picked_quantity), pick số lượng NONE (cập nhật detail reserved/insert), chống overpick phía client + backend, chốt picking (`rpc_gi_submit`) và xuất kho (`rpc_gi_complete`) với confirm khi còn thiếu, refresh khi lệch trạng thái, map lỗi nghiệp vụ sang tiếng Việt, offline/loading/disabled states.
+- Ticket/Issue ID: APP-PHASE7
+- Scope: `app/android` - chỉ gọi RPC/REST GI đã audit từ scanner PWA + migrations; không đổi DB/RPC/API/status contract; không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/network/NetworkClient.kt` (thêm `HttpMethod.PATCH`)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/GoodsIssue.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/gi/GoodsIssueErrorMapper.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/gi/GoodsIssueRepository.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/goodsissue/{GoodsIssueListUiState,GoodsIssueListViewModel,GoodsIssueListScreen,GoodsIssuePickUiState,GoodsIssuePickViewModel,GoodsIssuePickScreen}.kt`
+  - `core/di/AppContainer.kt`, `core/navigation/AppDestination.kt`, `core/navigation/AppNavHost.kt`
+  - `feature/home/HomeViewModel.kt`, `feature/home/HomeScreen.kt`
+  - `app/android/app/src/test/java/vn/delfi/xcloudwms/data/gi/GoodsIssueErrorMapperTest.kt`, `.../domain/model/GoodsIssueModelTest.kt`
+  - `app/prompts/prompt_map.md`
+- Tests run:
+  - `./gradlew :app:compileDevDebugKotlin :app:compileDevDebugUnitTestKotlin` ✅
+  - `./gradlew :app:testDevDebugUnitTest` ✅ (full suite, gồm GI mapper + model tests)
+  - `./gradlew :app:assembleDevDebug` ✅
+  - `./gradlew :app:lintDevDebug` ❌ chỉ do 3 lỗi `RestrictedApi` có sẵn ở `MainActivity.dispatchKeyEvent` (không liên quan GI; file mới GI không có lint finding)
+- Commit message: `feat(app-gi): implement goods issue picking flow`
+- Notes/Risks:
+  - Ghi `gi_details` (PATCH/INSERT PostgREST theo RLS `gi.scan`/`gi.update` như scanner) vì không có RPC pick chuyên dụng; đã thêm `HttpMethod.PATCH` (Android HttpURLConnection nền OkHttp cho phép PATCH).
+  - Pick NONE: cập nhật `picked_quantity` của detail reserved (không tăng `quantity` để tránh trigger `gi_reserved_qty_exceeds_line_needed`), chỉ insert mới khi còn sức chứa dòng.
+  - `rpc_gi_submit` tự chuyển COMPLETED khi mọi dòng đủ, ngược lại PICKED; nút "Xuất kho" gọi `rpc_gi_complete` cho phần đã pick. Tồn kho do backend quyết định, client chỉ optimistic + refresh.
+  - Chưa hỗ trợ quét nguyên LPN (`rpc_gi_scan_whole_lpn`) và chọn vị trí pick thủ công như PWA — phạm vi phase sau.
+
 ## 2026-06-01 17:30 — Phase 6 PA put-away scan session
 
 - Prompt summary: Triển khai module PA (Put-away/Internal transfer) native cho `app/android` (prompt 06), parity scanner PWA `PaPutawayClient.tsx`: tạo phiên DRAFT (`rpc_pa_start_session`), stepper quét vị trí nguồn → sản phẩm/serial/lot → số lượng → vị trí đích, thêm/xoá dòng nháp (`rpc_pa_add_line`/`rpc_pa_delete_line`), live stock check (`rpc_pa_live_stock_check`), submit (`rpc_pa_submit` + hậu xử lý `rpc_process_inventory_threshold_events`). Validation UX, chặn trùng serial/lot/none phía client, map mã lỗi nghiệp vụ sang tiếng Việt, chống double-submit, offline banner.

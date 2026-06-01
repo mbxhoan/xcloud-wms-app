@@ -25,6 +25,7 @@ fun HomeScreen(
     onOpenScannerTest: () -> Unit,
     onOpenStockLookup: () -> Unit,
     onOpenPutaway: () -> Unit,
+    onOpenGoodsIssue: () -> Unit,
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -61,6 +62,7 @@ fun HomeScreen(
                     val cardModifier = when (shortcut.actionKey) {
                         HomeViewModel.ACTION_STOCK_LOOKUP -> Modifier.clickable { onOpenStockLookup() }
                         HomeViewModel.ACTION_PUTAWAY -> Modifier.clickable { onOpenPutaway() }
+                        HomeViewModel.ACTION_GOODS_ISSUE -> Modifier.clickable { onOpenGoodsIssue() }
                         else -> Modifier
                     }
                     SectionCard(modifier = cardModifier) {

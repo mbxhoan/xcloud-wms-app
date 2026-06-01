@@ -7,12 +7,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import vn.delfi.xcloudwms.core.di.AppContainer
 import vn.delfi.xcloudwms.domain.model.SessionStatus
+import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListScreen
+import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListViewModel
+import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssuePickScreen
+import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssuePickViewModel
 import vn.delfi.xcloudwms.feature.home.HomeScreen
 import vn.delfi.xcloudwms.feature.home.HomeViewModel
 import vn.delfi.xcloudwms.feature.login.LoginScreen
@@ -157,6 +163,9 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenPutaway = {
                     navController.navigate(AppDestination.Putaway.route)
                 },
+                onOpenGoodsIssue = {
+                    navController.navigate(AppDestination.GoodsIssueList.route)
+                },
             )
         }
 
@@ -187,6 +196,45 @@ fun AppNavHost(appContainer: AppContainer) {
                 ),
             )
             PutawayScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(AppDestination.GoodsIssueList.route) {
+            val viewModel: GoodsIssueListViewModel = viewModel(
+                factory = GoodsIssueListViewModel.factory(
+                    scannerManager = appContainer.scannerManager,
+                    goodsIssueRepository = appContainer.goodsIssueRepository,
+                    sessionRepository = appContainer.sessionRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            GoodsIssueListScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onOpenHeader = { headerId ->
+                    navController.navigate(AppDestination.goodsIssuePickRoute(headerId))
+                },
+            )
+        }
+
+        composable(
+            route = AppDestination.GoodsIssuePick.route,
+            arguments = listOf(navArgument("headerId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val headerId = backStackEntry.arguments?.getString("headerId").orEmpty()
+            val viewModel: GoodsIssuePickViewModel = viewModel(
+                factory = GoodsIssuePickViewModel.factory(
+                    headerId = headerId,
+                    scannerManager = appContainer.scannerManager,
+                    goodsIssueRepository = appContainer.goodsIssueRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            GoodsIssuePickScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )
