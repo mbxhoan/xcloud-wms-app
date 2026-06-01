@@ -7,8 +7,14 @@ import vn.delfi.xcloudwms.core.logging.LogLevel
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.core.network.DefaultNetworkClient
 import vn.delfi.xcloudwms.core.network.NetworkClient
-import vn.delfi.xcloudwms.core.scanner.ManualScannerManager
+import vn.delfi.xcloudwms.core.scanner.DefaultBarcodeParser
+import vn.delfi.xcloudwms.core.scanner.DefaultFeedbackManager
+import vn.delfi.xcloudwms.core.scanner.DefaultScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
+import vn.delfi.xcloudwms.core.scanner.adapter.BroadcastScannerAdapter
+import vn.delfi.xcloudwms.core.scanner.adapter.CameraScannerAdapter
+import vn.delfi.xcloudwms.core.scanner.adapter.KeyboardWedgeScannerAdapter
+import vn.delfi.xcloudwms.core.scanner.adapter.ManualScannerAdapter
 import vn.delfi.xcloudwms.core.security.SecureSessionStorage
 import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.auth.AuthRepository
@@ -49,10 +55,27 @@ class DefaultAppContainer(
         logger = logger,
     )
 
-    override val scannerManager: ScannerManager = ManualScannerManager(
-        logger = logger,
-        application = application,
-    )
+    override val scannerManager: ScannerManager = run {
+        val broadcastAdapter = BroadcastScannerAdapter(
+            context = application,
+            logger = logger,
+            configProvider = { appPreferences.currentBroadcastScannerConfig() },
+        )
+        DefaultScannerManager(
+            manualAdapter = ManualScannerAdapter(),
+            keyboardWedgeAdapter = KeyboardWedgeScannerAdapter(),
+            broadcastAdapter = broadcastAdapter,
+            cameraAdapter = CameraScannerAdapter(
+                enabled = appConfig.enableCameraScanFallback,
+                logger = logger,
+            ),
+            parser = DefaultBarcodeParser(),
+            feedback = DefaultFeedbackManager(application = application, logger = logger),
+            logger = logger,
+            initialBroadcastConfig = appPreferences.currentBroadcastScannerConfig(),
+            onBroadcastConfigChanged = { appPreferences.saveBroadcastScannerConfig(it) },
+        )
+    }
 
     override val sessionRepository: SessionRepository = DefaultSessionRepository(
         appConfig = appConfig,

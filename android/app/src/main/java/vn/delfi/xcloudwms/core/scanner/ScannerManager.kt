@@ -1,127 +1,57 @@
 package vn.delfi.xcloudwms.core.scanner
 
-import android.app.Application
-import android.os.VibrationEffect
-import android.os.Vibrator
+import android.view.KeyEvent
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import vn.delfi.xcloudwms.core.logging.SafeLogger
+import kotlinx.coroutines.flow.StateFlow
 
-enum class ScanSource(val label: String) {
-    SDK("Bộ SDK"),
-    BROADCAST("Tín hiệu phát"),
-    KEYBOARD_WEDGE("Phím quét"),
-    CAMERA("Máy ảnh"),
-    MANUAL("Thủ công"),
-}
+/**
+ * Trạng thái runtime của scanner để màn hình hiển thị (adapter đang chạy, mã/loại gần nhất...).
+ */
+data class ScannerRuntimeState(
+    val isActive: Boolean = false,
+    val mode: ScannerMode = ScannerMode.GENERIC,
+    val activeSources: List<ScanSource> = emptyList(),
+    val lastRaw: String? = null,
+    val lastType: BarcodeType? = null,
+    val continuousSerial: Boolean = false,
+    val broadcastConfig: BroadcastScannerConfig = BroadcastScannerConfig.EMPTY,
+)
 
-enum class ScannerMode(val label: String) {
-    GENERIC("Tổng quát"),
-    LOCATION("Vị trí"),
-    PRODUCT("Sản phẩm"),
-    LOT("Lô"),
-    SERIAL("Số seri"),
-    DOCUMENT("Chứng từ"),
-}
-
-sealed interface ScanEvent {
-    data class Success(
-        val raw: String,
-        val symbology: String? = null,
-        val source: ScanSource,
-        val timestamp: Long,
-    ) : ScanEvent
-
-    data class Error(
-        val message: String,
-        val source: ScanSource,
-    ) : ScanEvent
-}
-
+/**
+ * Điểm vào duy nhất cho mọi barcode/QR. Feature screen chỉ collect [scanEvents] và gọi
+ * start/stop theo lifecycle — không biết đang dùng wedge/broadcast/camera/SDK nào.
+ */
 interface ScannerManager {
+    /** Luồng sự kiện quét đã chuẩn hoá + phân tích. */
     val scanEvents: Flow<ScanEvent>
 
+    /** Trạng thái hiển thị cho UI. */
+    val state: StateFlow<ScannerRuntimeState>
+
+    /** Bật toàn bộ adapter và bắt đầu nhận quét. */
     fun start()
 
+    /** Tắt toàn bộ adapter; sau khi gọi, key event/broadcast không còn được xử lý. */
     fun stop()
 
+    /** Đổi ngữ cảnh quét hiện tại (gợi ý cho parser). */
     fun setMode(mode: ScannerMode)
 
+    /** Nhập tay (debug) — đi qua cùng pipeline như quét thật. */
     fun submitManualScan(raw: String)
-}
 
-class ManualScannerManager(
-    private val logger: SafeLogger,
-    application: Application,
-) : ScannerManager {
-    private val mutableScanEvents = MutableSharedFlow<ScanEvent>(extraBufferCapacity = 16)
-    private val vibrator: Vibrator? = application.getSystemService(Vibrator::class.java)
+    /**
+     * Chuyển tiếp key event từ Activity cho keyboard wedge adapter.
+     * @return true nếu adapter đã "nuốt" event (không cho dispatch tiếp), false nếu để hệ thống xử lý.
+     */
+    fun onKeyEvent(event: KeyEvent): Boolean
 
-    private var isActive: Boolean = false
-    private var scannerMode: ScannerMode = ScannerMode.GENERIC
+    /** Bật/tắt chế độ quét serial liên tục (bỏ chặn trùng). */
+    fun setContinuousSerial(enabled: Boolean)
 
-    override val scanEvents: Flow<ScanEvent> = mutableScanEvents.asSharedFlow()
+    /** Cập nhật cấu hình broadcast (lưu prefs + đăng ký lại receiver nếu đang chạy). */
+    fun setBroadcastConfig(config: BroadcastScannerConfig)
 
-    override fun start() {
-        isActive = true
-        logger.info("ScannerManager", "Scanner placeholder started")
-    }
-
-    override fun stop() {
-        isActive = false
-        logger.info("ScannerManager", "Scanner placeholder stopped")
-    }
-
-    override fun setMode(mode: ScannerMode) {
-        scannerMode = mode
-        logger.debug("ScannerManager", "Scanner mode changed to ${mode.name}")
-    }
-
-    override fun submitManualScan(raw: String) {
-        val normalized = raw.trim()
-        if (!isActive) {
-            emitError("Máy quét chưa được kích hoạt.")
-            return
-        }
-
-        if (normalized.isBlank()) {
-            emitError("Mã quét đang trống.")
-            return
-        }
-
-        vibrate(durationMs = 45L)
-        mutableScanEvents.tryEmit(
-            ScanEvent.Success(
-                raw = normalized,
-                source = ScanSource.MANUAL,
-                timestamp = System.currentTimeMillis(),
-            ),
-        )
-        logger.debug(
-            "ScannerManager",
-            "Accepted manual scan mode=${scannerMode.name} raw=$normalized",
-        )
-    }
-
-    private fun emitError(message: String) {
-        vibrate(durationMs = 140L)
-        mutableScanEvents.tryEmit(
-            ScanEvent.Error(
-                message = message,
-                source = ScanSource.MANUAL,
-            ),
-        )
-        logger.error("ScannerManager", message)
-    }
-
-    private fun vibrate(durationMs: Long) {
-        val activeVibrator = vibrator ?: return
-        if (!activeVibrator.hasVibrator()) {
-            return
-        }
-        activeVibrator.vibrate(
-            VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE),
-        )
-    }
+    /** Phát beep + rung để kiểm tra phần cứng phản hồi. */
+    fun testFeedback()
 }

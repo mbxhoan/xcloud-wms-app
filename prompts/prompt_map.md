@@ -18,6 +18,32 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-01 10:15 — Phase 4 scanner abstraction & PDA input adapters
+
+- Prompt summary: Triển khai scanner core cho `app/android` (prompt 04): mọi barcode/QR đi qua `ScannerManager`; thêm domain models (`ScanEvent`/`ScanSource`/`ScannerMode`/`ParsedBarcode`), core interfaces (`ScannerManager`/`ScannerAdapter`/`BarcodeParser`/`FeedbackManager`), adapters (keyboard wedge, broadcast intent cấu hình được, manual, camera placeholder), debounce chống trùng cấu hình được, beep/rung feedback và mở rộng màn Kiểm tra máy quét.
+- Ticket/Issue ID: APP-PHASE4
+- Scope: `app/android + docs` - chỉ thêm tầng scanner abstraction phía Android, không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/scanner/**` (models, `ScannerManager`, `DefaultScannerManager`, `BarcodeParser`, `FeedbackManager`, `ScanDebouncer`, `ScannerConfig`)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/scanner/adapter/**` (Manual/KeyboardWedge/Broadcast/Camera)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/storage/AppPreferences.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/MainActivity.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/**`
+  - `app/android/app/src/test/java/vn/delfi/xcloudwms/core/scanner/**`
+  - `app/android/gradle/libs.versions.toml`, `app/android/app/build.gradle.kts`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `./gradlew -p app/android :app:testDevDebugUnitTest` ✅ pass (parser + debounce)
+  - `./gradlew -p app/android :app:assembleDevDebug` ✅ pass
+  - `git -C app diff --check` ✅ no whitespace error
+- Commit message: `feat(app-scan): add scanner abstraction and pda input adapters`
+- Notes/Risks:
+  - Camera adapter mới là placeholder (chưa thêm CameraX/ML Kit, chưa xin quyền CAMERA) theo quyết định phase này.
+  - Keyboard wedge phân biệt quét máy/gõ tay bằng độ trễ phím; ký tự đầu của một lần quét nhanh vào ô đang focus có thể để lại 1 ký tự thừa, mã phát ra vẫn đầy đủ.
+  - Broadcast receiver đăng ký cờ EXPORTED để nhận intent từ app scanner ngoài (API 34+); action/extra key do người dùng cấu hình trong màn Kiểm tra máy quét, không hard-code vendor.
+  - `BarcodeParser` chỉ là gợi ý phía client; phân loại chính thức vẫn thuộc backend lookup (`rpc_traceability_lookup`) ở phase Stock Lookup.
+
 ## 2026-05-30 15:11 — Phase 2 auth tenant và warehouse context
 
 - Prompt summary: Triển khai auth/context cho native Android app theo endpoint thật đã audit trong `app/specs/api_endpoints_draft.md`: login Supabase Auth, secure token storage, session restore/refresh, load profile/tenant/permissions/warehouses, chọn kho hiện tại và home menu theo quyền.

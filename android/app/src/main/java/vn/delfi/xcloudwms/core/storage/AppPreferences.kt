@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import vn.delfi.xcloudwms.core.config.ConnectionConfig
+import vn.delfi.xcloudwms.core.scanner.BroadcastScannerConfig
 
 class AppPreferences(
     context: Context,
@@ -16,7 +17,23 @@ class AppPreferences(
     private val mutableConnectionConfig = MutableStateFlow(loadConnectionConfig())
     val connectionConfig: StateFlow<ConnectionConfig?> = mutableConnectionConfig.asStateFlow()
 
+    private val mutableBroadcastScannerConfig = MutableStateFlow(loadBroadcastScannerConfig())
+    val broadcastScannerConfig: StateFlow<BroadcastScannerConfig> =
+        mutableBroadcastScannerConfig.asStateFlow()
+
     fun currentConnectionConfig(): ConnectionConfig? = mutableConnectionConfig.value
+
+    fun currentBroadcastScannerConfig(): BroadcastScannerConfig = mutableBroadcastScannerConfig.value
+
+    fun saveBroadcastScannerConfig(config: BroadcastScannerConfig) {
+        sharedPreferences.edit()
+            .putString(KEY_BROADCAST_ACTION, config.action)
+            .putString(KEY_BROADCAST_DATA_KEY, config.dataExtraKey)
+            .putString(KEY_BROADCAST_SYMBOLOGY_KEY, config.symbologyExtraKey)
+            .putBoolean(KEY_BROADCAST_ENABLED, config.enabled)
+            .apply()
+        mutableBroadcastScannerConfig.value = config
+    }
 
     fun saveConnectionConfig(config: ConnectionConfig) {
         sharedPreferences.edit()
@@ -81,10 +98,23 @@ class AppPreferences(
         return "$KEY_SELECTED_WAREHOUSE_PREFIX${userId.trim()}"
     }
 
+    private fun loadBroadcastScannerConfig(): BroadcastScannerConfig {
+        return BroadcastScannerConfig(
+            action = sharedPreferences.getString(KEY_BROADCAST_ACTION, "").orEmpty(),
+            dataExtraKey = sharedPreferences.getString(KEY_BROADCAST_DATA_KEY, "").orEmpty(),
+            symbologyExtraKey = sharedPreferences.getString(KEY_BROADCAST_SYMBOLOGY_KEY, "").orEmpty(),
+            enabled = sharedPreferences.getBoolean(KEY_BROADCAST_ENABLED, false),
+        )
+    }
+
     private companion object {
         const val PREFS_NAME = "xcloud_wms_preferences"
         const val KEY_CONNECTION_URL = "connection_url"
         const val KEY_CONNECTION_ANON_KEY = "connection_anon_key"
         const val KEY_SELECTED_WAREHOUSE_PREFIX = "selected_warehouse_"
+        const val KEY_BROADCAST_ACTION = "broadcast_scanner_action"
+        const val KEY_BROADCAST_DATA_KEY = "broadcast_scanner_data_key"
+        const val KEY_BROADCAST_SYMBOLOGY_KEY = "broadcast_scanner_symbology_key"
+        const val KEY_BROADCAST_ENABLED = "broadcast_scanner_enabled"
     }
 }
