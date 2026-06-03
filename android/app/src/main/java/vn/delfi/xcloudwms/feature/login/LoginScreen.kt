@@ -32,87 +32,89 @@ fun LoginScreen(viewModel: LoginViewModel) {
         title = "Đăng nhập",
         subtitle = "Đăng nhập để tải đơn vị, kho đang thao tác và quyền truy cập từ hệ thống.",
     ) {
-        SectionCard(title = "Kết nối hệ thống") {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (uiState.value.connectionConfigured && !uiState.value.connectionLabel.isNullOrBlank()) {
-                    InfoPill(text = "Đã cấu hình: ${uiState.value.connectionLabel}")
-                } else {
-                    Text(
-                        text = "Ứng dụng cần địa chỉ kết nối và khóa truy cập công khai của hệ thống trước khi đăng nhập.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                OutlinedTextField(
-                    value = uiState.value.connectionUrl,
-                    onValueChange = viewModel::updateConnectionUrl,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Địa chỉ kết nối") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Uri,
-                        imeAction = ImeAction.Next,
-                    ),
-                    colors = TextFieldDefaults.colors(),
-                )
-
-                OutlinedTextField(
-                    value = uiState.value.anonKey,
-                    onValueChange = viewModel::updateAnonKey,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Khóa truy cập công khai") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done,
-                    ),
-                    colors = TextFieldDefaults.colors(),
-                )
-
-                uiState.value.connectionErrorMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-
-                uiState.value.connectionSuccessMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-
+        if (uiState.value.showConnectionSection) {
+            SectionCard(title = "Kết nối hệ thống") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(
-                        onClick = viewModel::testConnection,
-                        enabled = !uiState.value.isConnectionBusy && !uiState.value.isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                    if (uiState.value.connectionConfigured && !uiState.value.connectionLabel.isNullOrBlank()) {
+                        InfoPill(text = "Đã cấu hình: ${uiState.value.connectionLabel}")
+                    } else {
                         Text(
-                            text = if (uiState.value.isTestingConnection) {
-                                "Đang kiểm tra..."
-                            } else {
-                                "Kiểm tra kết nối"
-                            },
+                            text = "Ứng dụng cần địa chỉ kết nối và khóa truy cập công khai của hệ thống trước khi đăng nhập.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
 
-                    Button(
-                        onClick = viewModel::saveConnection,
-                        enabled = !uiState.value.isConnectionBusy && !uiState.value.isLoading,
+                    OutlinedTextField(
+                        value = uiState.value.connectionUrl,
+                        onValueChange = viewModel::updateConnectionUrl,
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
+                        label = { Text("Địa chỉ kết nối") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Next,
+                        ),
+                        colors = TextFieldDefaults.colors(),
+                    )
+
+                    OutlinedTextField(
+                        value = uiState.value.anonKey,
+                        onValueChange = viewModel::updateAnonKey,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Khóa truy cập công khai") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Done,
+                        ),
+                        colors = TextFieldDefaults.colors(),
+                    )
+
+                    uiState.value.connectionErrorMessage?.let { message ->
                         Text(
-                            text = if (uiState.value.isSavingConnection) {
-                                "Đang lưu..."
-                            } else {
-                                "Lưu cấu hình"
-                            },
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
                         )
+                    }
+
+                    uiState.value.connectionSuccessMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(
+                            onClick = viewModel::testConnection,
+                            enabled = !uiState.value.isConnectionBusy && !uiState.value.isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = if (uiState.value.isTestingConnection) {
+                                    "Đang kiểm tra..."
+                                } else {
+                                    "Kiểm tra kết nối"
+                                },
+                            )
+                        }
+
+                        Button(
+                            onClick = viewModel::saveConnection,
+                            enabled = !uiState.value.isConnectionBusy && !uiState.value.isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = if (uiState.value.isSavingConnection) {
+                                    "Đang lưu..."
+                                } else {
+                                    "Lưu cấu hình"
+                                },
+                            )
+                        }
                     }
                 }
             }

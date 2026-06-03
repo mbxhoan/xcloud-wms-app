@@ -104,6 +104,7 @@ fun AppNavHost(appContainer: AppContainer) {
         composable(AppDestination.Login.route) {
             val viewModel: LoginViewModel = viewModel(
                 factory = LoginViewModel.factory(
+                    appConfig = appContainer.appConfig,
                     sessionRepository = appContainer.sessionRepository,
                     logger = appContainer.logger,
                 ),

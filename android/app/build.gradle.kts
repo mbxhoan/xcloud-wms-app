@@ -26,10 +26,19 @@ fun String.asBuildConfigString(): String {
 
 val devConnectionUrl = resolveBuildValue("SUPABASE_URL_DEV", "BASE_API_URL_DEV")
 val devAnonKey = resolveBuildValue("SUPABASE_ANON_KEY_DEV", "ANON_KEY_DEV")
+val devDefaultOperatorCode = resolveBuildValue("DEFAULT_OPERATOR_CODE_DEV")
+val devDefaultPassword = resolveBuildValue("DEFAULT_PASSWORD_DEV")
+val devAutoLogin = resolveBuildValue("AUTO_LOGIN_DEV").equals("true", ignoreCase = true)
 val stagingConnectionUrl = resolveBuildValue("SUPABASE_URL_STAGING", "BASE_API_URL_STAGING")
 val stagingAnonKey = resolveBuildValue("SUPABASE_ANON_KEY_STAGING", "ANON_KEY_STAGING")
+val stagingDefaultOperatorCode = resolveBuildValue("DEFAULT_OPERATOR_CODE_STAGING")
+val stagingDefaultPassword = resolveBuildValue("DEFAULT_PASSWORD_STAGING")
+val stagingAutoLogin = resolveBuildValue("AUTO_LOGIN_STAGING").equals("true", ignoreCase = true)
 val prodConnectionUrl = resolveBuildValue("SUPABASE_URL_PROD", "BASE_API_URL_PROD")
 val prodAnonKey = resolveBuildValue("SUPABASE_ANON_KEY_PROD", "ANON_KEY_PROD")
+val prodDefaultOperatorCode = resolveBuildValue("DEFAULT_OPERATOR_CODE_PROD")
+val prodDefaultPassword = resolveBuildValue("DEFAULT_PASSWORD_PROD")
+val prodAutoLogin = resolveBuildValue("AUTO_LOGIN_PROD").equals("true", ignoreCase = true)
 
 android {
     namespace = "vn.delfi.xcloudwms"
@@ -65,6 +74,9 @@ android {
             )
             buildConfigField("String", "DEFAULT_CONNECTION_URL", devConnectionUrl.asBuildConfigString())
             buildConfigField("String", "DEFAULT_CONNECTION_ANON_KEY", devAnonKey.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_OPERATOR_CODE", devDefaultOperatorCode.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_PASSWORD", devDefaultPassword.asBuildConfigString())
+            buildConfigField("boolean", "AUTO_LOGIN_ON_LAUNCH", devAutoLogin.toString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
             buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "false")
         }
@@ -81,6 +93,9 @@ android {
             )
             buildConfigField("String", "DEFAULT_CONNECTION_URL", stagingConnectionUrl.asBuildConfigString())
             buildConfigField("String", "DEFAULT_CONNECTION_ANON_KEY", stagingAnonKey.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_OPERATOR_CODE", stagingDefaultOperatorCode.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_PASSWORD", stagingDefaultPassword.asBuildConfigString())
+            buildConfigField("boolean", "AUTO_LOGIN_ON_LAUNCH", stagingAutoLogin.toString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
             buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "false")
         }
@@ -95,6 +110,9 @@ android {
             )
             buildConfigField("String", "DEFAULT_CONNECTION_URL", prodConnectionUrl.asBuildConfigString())
             buildConfigField("String", "DEFAULT_CONNECTION_ANON_KEY", prodAnonKey.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_OPERATOR_CODE", prodDefaultOperatorCode.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_PASSWORD", prodDefaultPassword.asBuildConfigString())
+            buildConfigField("boolean", "AUTO_LOGIN_ON_LAUNCH", prodAutoLogin.toString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
             buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "true")
         }

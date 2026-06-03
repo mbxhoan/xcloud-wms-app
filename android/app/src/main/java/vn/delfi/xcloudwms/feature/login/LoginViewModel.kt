@@ -5,22 +5,35 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import vn.delfi.xcloudwms.core.config.AppConfig
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.data.session.SessionRepository
 
 class LoginViewModel(
+    private val appConfig: AppConfig,
     private val sessionRepository: SessionRepository,
     private val logger: SafeLogger,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = mutableUiState.asStateFlow()
+    private var autoLoginAttempted = false
+    private var autoLoginJob: Job? = null
 
     init {
+        mutableUiState.update {
+            it.copy(
+                operatorCode = appConfig.defaultOperatorCode,
+                password = appConfig.defaultPassword,
+                showConnectionSection = !appConfig.hasBootstrapConnectionConfig,
+            )
+        }
+
         sessionRepository.currentConnectionConfig()?.let { connectionConfig ->
             mutableUiState.update {
                 it.copy(
@@ -38,6 +51,11 @@ class LoginViewModel(
                         connectionLabel = session.connectionLabel,
                         loginErrorMessage = current.loginErrorMessage ?: session.errorMessage,
                     )
+                }
+
+                if (shouldAutoLogin()) {
+                    autoLoginAttempted = true
+                    submit()
                 }
             }
         }
@@ -174,7 +192,8 @@ class LoginViewModel(
             return
         }
 
-        viewModelScope.launch {
+        autoLoginJob?.cancel()
+        autoLoginJob = viewModelScope.launch {
             mutableUiState.update {
                 it.copy(isLoading = true, loginErrorMessage = null)
             }
@@ -199,13 +218,25 @@ class LoginViewModel(
         }
     }
 
+    private fun shouldAutoLogin(): Boolean {
+        val snapshot = mutableUiState.value
+        return appConfig.autoLoginOnLaunch &&
+            !autoLoginAttempted &&
+            !snapshot.isLoading &&
+            snapshot.connectionConfigured &&
+            snapshot.operatorCode.isNotBlank() &&
+            snapshot.password.isNotBlank()
+    }
+
     companion object {
         fun factory(
+            appConfig: AppConfig,
             sessionRepository: SessionRepository,
             logger: SafeLogger,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 LoginViewModel(
+                    appConfig = appConfig,
                     sessionRepository = sessionRepository,
                     logger = logger,
                 )

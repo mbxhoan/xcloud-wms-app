@@ -18,6 +18,28 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 15:10 — Dev auto-login shortcut for PDA test
+
+- Prompt summary: Tạm bỏ qua phần cấu hình thông tin kết nối trên app native, vào thẳng giao diện login và dùng sẵn tài khoản test `scan / Xcloudwms@123` để test nhanh trên PDA.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ thêm bootstrap dev-only cho login native; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/build.gradle.kts`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/config/AppConfig.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginScreen.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginUiState.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginViewModel.kt`
+  - `app/android/local.properties` (local-only, không commit)
+- Tests run:
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:assembleDevDebug` ✅
+  - `cd app && git diff --check` ✅
+- Commit message: `fix(app-auth): add dev auto-login shortcut for pda testing`
+- Notes/Risks:
+  - Shortcut này chỉ hoạt động khi bản `dev` có cấu hình local tương ứng; staging/prod mặc định không tự điền và không auto-login.
+  - `local.properties` chứa thông tin local-only, không được commit.
+  - Nếu project Supabase dev đổi hoặc user `scan` không tồn tại ở tenant hiện tại thì app vẫn dừng ở login và hiện lỗi backend.
+
 ## 2026-06-03 15:05 — Fix native Android login bootstrap on PDA
 
 - Prompt summary: Khi cắm PDA chạy app bằng Android Studio, Android Studio báo lỗi `Error starting live edit`, còn app trên PDA dừng ở màn đăng nhập. Cần xử lý để app native bootstrap kết nối đúng hơn trên thiết bị thật.

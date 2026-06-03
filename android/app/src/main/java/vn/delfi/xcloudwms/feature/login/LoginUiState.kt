@@ -6,6 +6,7 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val loginErrorMessage: String? = null,
     val isPasswordVisible: Boolean = false,
+    val showConnectionSection: Boolean = true,
     val connectionConfigured: Boolean = false,
     val connectionLabel: String? = null,
     val connectionUrl: String = "",
