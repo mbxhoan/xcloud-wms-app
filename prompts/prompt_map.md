@@ -18,6 +18,24 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 18:10 — Refactor home UI theo scanner Menu.png
+
+- Prompt summary: Refactor lại UI trang chủ app native theo `scanner/docs/UI-12/Menu.png` (greeting card xanh + lưới module dạng icon tile), vẫn giữ phần thông tin phần cứng và test quét nhanh như hiện tại.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ đổi layout/visual màn Home native; không đổi DB/RPC/API/status contract, không đổi data source, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt` (viết lại: GreetingCard + ModuleGrid icon tile + QuickAccessRow giữ Quét thử/Phần cứng + context + đổi kho/đăng xuất)
+  - `app/android/gradle/libs.versions.toml`, `app/android/app/build.gradle.kts` (thêm `androidx.compose.material:material-icons-extended`)
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅
+- Commit message: `style(app-home): refactor home menu ui to match scanner design`
+- Notes/Risks:
+  - Card "Số lượng công việc" (Cần xử lý/Đang xử lý/Completed) trong design KHÔNG được dựng vì app native chưa có nguồn dữ liệu đếm phiếu theo trạng thái; không bịa số. Có thể bổ sung khi có RPC/aggregate đếm phiếu — phase sau.
+  - Module tile lấy từ `moduleShortcuts` (permission-gated): tile có `actionKey` thì bấm được + style nổi; tile chưa wire (Kiểm kê, Đơn vị chứa) hiển thị mờ + nhãn "Sắp có".
+  - Thêm `material-icons-extended` làm tăng kích thước bundle (chưa bật minify); chấp nhận cho bản nội bộ.
+  - Bottom tab bar + nút scan nổi ở giữa như Menu.png là shell của scanner PWA, chưa đưa vào native phase này (Home vẫn dùng `XcloudScaffold` cuộn dọc).
+
 ## 2026-06-03 17:40 — Phase 8 GR goods receipt receiving
 
 - Prompt summary: Triển khai module Goods Receipt Receiving native cho `app/android` (prompt 08), parity scanner PWA `inbound/GrReceiveClient.tsx` + route `/app/inbound`: danh sách phiếu nhập trong kho (CREATED/RECEIVING/RECEIVED), mở phiếu xem tiến độ expected/received từng dòng, auto `rpc_gr_start_receiving`, nhận hàng theo location/product/lot/serial/qty (NONE: qty+location; LOT: `rpc_gr_resolve_lot_scan`+NSX/HSD nếu require/FEFO; SERIAL: `rpc_gr_resolve_serial_scan` qty=1, chặn trùng serial trong phiên), ghi `gr_details` qua PostgREST, chốt nhận (`rpc_gr_submit_receive`) + hoàn tất (`rpc_gr_complete`) với confirm khi còn thiếu, refresh khi lệch trạng thái, map lỗi nghiệp vụ sang tiếng Việt, offline/loading/disabled states.
