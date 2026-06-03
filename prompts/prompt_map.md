@@ -18,6 +18,28 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 18:40 — Phase 9 IC inventory count
+
+- Prompt summary: Triển khai module Inventory Count native cho `app/android` (prompt 09), parity scanner PWA `count/IcCountClient.tsx` + route `/app/count`: danh sách phiếu kiểm kê trong kho, mở phiếu xem snapshot/counted/diff từng dòng, auto `rpc_ic_start_counting`, đếm theo NONE (`rpc_ic_update_count` tuyệt đối) / LOT (`rpc_check_lot_scan` → `rpc_ic_add_detail`) / SERIAL (`rpc_check_serial_scan` → `rpc_ic_add_detail` qty=1, chặn trùng), kết thúc kiểm kê (`rpc_ic_complete` action COMPLETE_ONLY + ghi chú), đếm mù (ẩn tồn), refresh khi lệch trạng thái, map lỗi tiếng Việt.
+- Ticket/Issue ID: APP-PHASE9
+- Scope: `app/android` - chỉ gọi RPC/REST IC đã audit từ scanner PWA + migrations; không đổi DB/RPC/API/status contract; không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/InventoryCount.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/ic/{InventoryCountRepository,InventoryCountErrorMapper}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/inventorycount/{InventoryCountListUiState,InventoryCountListViewModel,InventoryCountListScreen,InventoryCountUiState,InventoryCountViewModel,InventoryCountScreen}.kt`
+  - `core/di/AppContainer.kt`, `core/navigation/AppDestination.kt`, `core/navigation/AppNavHost.kt`
+  - `feature/home/HomeViewModel.kt`, `feature/home/HomeScreen.kt`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅
+- Commit message: `feat(app-ic): implement inventory count scan flow`
+- Notes/Risks:
+  - An toàn tồn kho: kết thúc dùng `rpc_ic_complete(p_id,'COMPLETE_ONLY',note)` — chỉ đóng phiếu, KHÔNG post ledger. Trigger điều chỉnh tồn chỉ chạy khi `action='ADJUST'`; cân bằng/duyệt để webapp (đúng yêu cầu MVP).
+  - NONE: `rpc_ic_update_count` đặt số đếm tuyệt đối (current + delta). LOT/SERIAL: `rpc_ic_add_detail` (gọi KHÔNG kèm `p_ic_line_id` để khớp signature gốc; resolve dòng theo product+location). Chặn trùng serial: session set + backend `uniq_ic_details_header_serial`/`ic_conflict`.
+  - List theo kho hiện tại (warehouse_id + status DRAFT/CREATED/IN_PROGRESS), không lọc assigned (đồng bộ list GR/GI native). Không dùng `rpc_scanner_list_ic_headers` để tránh phụ thuộc gate `login_app=SCANNER`.
+  - Đếm mù (count_mode BLIND) ẩn tồn hệ thống + lệch; ngược lại hiển thị snapshot/counted/diff.
+  - Chưa hỗ trợ quét LPN (`rpc_ic_scan_lpn`) và duyệt điều chỉnh ACID (`IC_APPROVE_ADJUSTMENT`) — phạm vi phase/webapp sau.
+
 ## 2026-06-03 18:10 — Refactor home UI theo scanner Menu.png
 
 - Prompt summary: Refactor lại UI trang chủ app native theo `scanner/docs/UI-12/Menu.png` (greeting card xanh + lưới module dạng icon tile), vẫn giữ phần thông tin phần cứng và test quét nhanh như hiện tại.

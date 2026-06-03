@@ -25,6 +25,10 @@ import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptListScreen
 import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptListViewModel
 import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptReceiveScreen
 import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptReceiveViewModel
+import vn.delfi.xcloudwms.feature.inventorycount.InventoryCountListScreen
+import vn.delfi.xcloudwms.feature.inventorycount.InventoryCountListViewModel
+import vn.delfi.xcloudwms.feature.inventorycount.InventoryCountScreen
+import vn.delfi.xcloudwms.feature.inventorycount.InventoryCountViewModel
 import vn.delfi.xcloudwms.feature.home.HomeScreen
 import vn.delfi.xcloudwms.feature.home.HomeViewModel
 import vn.delfi.xcloudwms.feature.login.LoginScreen
@@ -179,6 +183,9 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenGoodsReceipt = {
                     navController.navigate(AppDestination.GoodsReceiptList.route)
                 },
+                onOpenInventoryCount = {
+                    navController.navigate(AppDestination.InventoryCountList.route)
+                },
             )
         }
 
@@ -300,6 +307,45 @@ fun AppNavHost(appContainer: AppContainer) {
                 ),
             )
             GoodsReceiptReceiveScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(AppDestination.InventoryCountList.route) {
+            val viewModel: InventoryCountListViewModel = viewModel(
+                factory = InventoryCountListViewModel.factory(
+                    scannerManager = appContainer.scannerManager,
+                    inventoryCountRepository = appContainer.inventoryCountRepository,
+                    sessionRepository = appContainer.sessionRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            InventoryCountListScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onOpenHeader = { headerId ->
+                    navController.navigate(AppDestination.inventoryCountRoute(headerId))
+                },
+            )
+        }
+
+        composable(
+            route = AppDestination.InventoryCount.route,
+            arguments = listOf(navArgument("headerId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val headerId = backStackEntry.arguments?.getString("headerId").orEmpty()
+            val viewModel: InventoryCountViewModel = viewModel(
+                factory = InventoryCountViewModel.factory(
+                    headerId = headerId,
+                    scannerManager = appContainer.scannerManager,
+                    inventoryCountRepository = appContainer.inventoryCountRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            InventoryCountScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )

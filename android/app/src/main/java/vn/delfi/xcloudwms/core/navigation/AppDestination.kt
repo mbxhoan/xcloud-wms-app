@@ -14,11 +14,15 @@ enum class AppDestination(val route: String) {
     GoodsIssuePick("goods_issue/{headerId}"),
     GoodsReceiptList("goods_receipt"),
     GoodsReceiptReceive("goods_receipt/{headerId}"),
+    InventoryCountList("inventory_count"),
+    InventoryCount("inventory_count/{headerId}"),
     ;
 
     companion object {
         fun goodsIssuePickRoute(headerId: String): String = "goods_issue/$headerId"
 
         fun goodsReceiptReceiveRoute(headerId: String): String = "goods_receipt/$headerId"
+
+        fun inventoryCountRoute(headerId: String): String = "inventory_count/$headerId"
     }
 }

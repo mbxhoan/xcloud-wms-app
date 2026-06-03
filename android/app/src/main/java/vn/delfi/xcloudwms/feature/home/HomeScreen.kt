@@ -56,6 +56,7 @@ fun HomeScreen(
     onOpenPutaway: () -> Unit,
     onOpenGoodsIssue: () -> Unit,
     onOpenGoodsReceipt: () -> Unit,
+    onOpenInventoryCount: () -> Unit,
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
@@ -65,6 +66,7 @@ fun HomeScreen(
             HomeViewModel.ACTION_PUTAWAY -> onOpenPutaway()
             HomeViewModel.ACTION_GOODS_ISSUE -> onOpenGoodsIssue()
             HomeViewModel.ACTION_GOODS_RECEIPT -> onOpenGoodsReceipt()
+            HomeViewModel.ACTION_INVENTORY_COUNT -> onOpenInventoryCount()
             else -> Unit
         }
     }
@@ -356,6 +358,7 @@ private fun moduleIcon(shortcut: ModuleShortcut): ImageVector {
         HomeViewModel.ACTION_GOODS_ISSUE -> Icons.Filled.Outbox
         HomeViewModel.ACTION_PUTAWAY -> Icons.Filled.SwapHoriz
         HomeViewModel.ACTION_STOCK_LOOKUP -> Icons.AutoMirrored.Filled.ManageSearch
+        HomeViewModel.ACTION_INVENTORY_COUNT -> Icons.AutoMirrored.Filled.FactCheck
         else -> when {
             shortcut.title.contains("Kiểm kê", ignoreCase = true) -> Icons.AutoMirrored.Filled.FactCheck
             shortcut.title.contains("Đơn vị chứa", ignoreCase = true) -> Icons.Filled.Inventory2

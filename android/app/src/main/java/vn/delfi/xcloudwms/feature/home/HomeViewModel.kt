@@ -58,6 +58,8 @@ class HomeViewModel(
                 title = "Kiểm kê",
                 note = "Quét và ghi nhận số lượng kiểm kê theo quyền hiện tại.",
                 requiredPermissions = setOf("inventory.scan"),
+                actionKey = ACTION_INVENTORY_COUNT,
+                actionLabel = "Mở danh sách phiếu kiểm kê",
             ),
             ModuleDefinition(
                 title = "Sắp xếp kho",
@@ -108,6 +110,7 @@ class HomeViewModel(
         const val ACTION_PUTAWAY = "putaway"
         const val ACTION_GOODS_ISSUE = "goods_issue"
         const val ACTION_GOODS_RECEIPT = "goods_receipt"
+        const val ACTION_INVENTORY_COUNT = "inventory_count"
 
         fun factory(
             sessionRepository: SessionRepository,
