@@ -7,6 +7,7 @@ import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.UnknownHostException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import vn.delfi.xcloudwms.core.config.AppConfig
 import vn.delfi.xcloudwms.core.config.ConnectionConfig
@@ -33,6 +34,11 @@ data class NetworkRequest(
     val body: String? = null,
     val authToken: String? = null,
     val useAnonAuthorization: Boolean = false,
+    /**
+     * Request id idempotency cho API commit (gửi qua header `X-Request-Id`). Xem [RequestId].
+     * Để trống cho GET/list/detail.
+     */
+    val idempotencyKey: String? = null,
 )
 
 data class NetworkResponse(
@@ -61,6 +67,29 @@ class DefaultNetworkClient(
     }
 
     override suspend fun execute(request: NetworkRequest): NetworkResult<NetworkResponse> {
+        // Chỉ retry GET (idempotent). Commit POST không retry mù để tránh commit trùng khi
+        // backend chưa idempotent (xem RetryPolicy / docs/06 mục 7).
+        val maxAttempts = if (request.method == HttpMethod.GET) RetryPolicy.MAX_GET_ATTEMPTS else 1
+        var attempt = 1
+        while (true) {
+            val result = executeOnce(request)
+            if (
+                result is NetworkResult.Failure &&
+                RetryPolicy.shouldRetry(attempt, maxAttempts, result.error.code)
+            ) {
+                logger.debug(
+                    tag = "NetworkClient",
+                    message = "Retry GET ${request.path} (lần ${attempt + 1}/$maxAttempts) sau lỗi ${result.error.code}",
+                )
+                delay(RetryPolicy.backoffMillis(attempt))
+                attempt++
+                continue
+            }
+            return result
+        }
+    }
+
+    private suspend fun executeOnce(request: NetworkRequest): NetworkResult<NetworkResponse> {
         return withContext(Dispatchers.IO) {
             val fullUrl = buildUrl(
                 connectionConfig = request.connectionConfig,
@@ -77,6 +106,9 @@ class DefaultNetworkClient(
                     setRequestProperty("Accept", request.headers["Accept"] ?: "application/json")
                     setRequestProperty("apikey", request.connectionConfig.anonKey)
                     setRequestProperty("X-App-Channel", appConfig.appChannel)
+                    if (!request.idempotencyKey.isNullOrBlank()) {
+                        setRequestProperty("X-Request-Id", request.idempotencyKey)
+                    }
 
                     val authorizationValue = when {
                         request.authToken != null -> "Bearer ${request.authToken}"

@@ -16,6 +16,11 @@ data class PaBanner(
     val message: String,
 )
 
+/** Xung đột phát hiện khi hoàn tất (phiếu đổi trạng thái / tồn thay đổi). Hiển thị + cho tải lại. */
+data class PaConflict(
+    val message: String,
+)
+
 data class PutawayUiState(
     val isOffline: Boolean = false,
     val warehouseLabel: String = "Chưa chọn",
@@ -46,6 +51,10 @@ data class PutawayUiState(
     val isAddingLine: Boolean = false,
     val isSubmitting: Boolean = false,
     val deletingDetailId: String? = null,
+
+    // Offline-lite
+    val usingCachedData: Boolean = false,
+    val conflict: PaConflict? = null,
 
     val banner: PaBanner? = null,
 ) {

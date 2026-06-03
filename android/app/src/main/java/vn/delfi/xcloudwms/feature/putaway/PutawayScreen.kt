@@ -87,6 +87,20 @@ fun PutawayScreen(
         )
     }
 
+    state.conflict?.let { conflict ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissConflict,
+            title = { Text("Phiếu đã thay đổi") },
+            text = { Text(conflict.message) },
+            confirmButton = {
+                TextButton(onClick = viewModel::reloadAfterConflict) { Text("Tải lại") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissConflict) { Text("Đóng") }
+            },
+        )
+    }
+
     XcloudScaffold(
         title = "Sắp xếp kho",
         subtitle = "Quét vị trí nguồn → sản phẩm/serial/lot → số lượng → vị trí đích, rồi thêm dòng và hoàn tất.",
@@ -94,6 +108,9 @@ fun PutawayScreen(
     ) {
         if (state.isOffline) {
             Banner(BannerTone.WARNING, "Mất kết nối mạng. Một số thao tác có thể không thực hiện được.")
+        }
+        if (state.usingCachedData) {
+            Banner(BannerTone.WARNING, "Đang xem dữ liệu đã lưu (ngoại tuyến). Cần có mạng để hoàn tất phiếu.")
         }
         state.banner?.let { banner ->
             Banner(banner.tone, banner.message, onDismiss = viewModel::dismissBanner)

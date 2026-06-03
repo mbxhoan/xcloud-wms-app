@@ -343,6 +343,10 @@ class GoodsIssuePickViewModel(
 
     private fun doSubmit() {
         if (uiState.value.isSubmitting) return
+        if (uiState.value.isOffline) {
+            setBanner(GiBannerTone.WARNING, "Cần có mạng để hoàn tất.")
+            return
+        }
         mutableUiState.update { it.copy(isSubmitting = true, banner = null) }
         viewModelScope.launch {
             val result = goodsIssueRepository.submit(headerId)
@@ -370,6 +374,10 @@ class GoodsIssuePickViewModel(
 
     private fun doComplete() {
         if (uiState.value.isCompleting) return
+        if (uiState.value.isOffline) {
+            setBanner(GiBannerTone.WARNING, "Cần có mạng để hoàn tất.")
+            return
+        }
         mutableUiState.update { it.copy(isCompleting = true, banner = null) }
         viewModelScope.launch {
             val result = goodsIssueRepository.complete(headerId)

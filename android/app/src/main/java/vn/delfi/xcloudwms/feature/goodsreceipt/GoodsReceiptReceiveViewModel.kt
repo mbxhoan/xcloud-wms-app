@@ -435,6 +435,10 @@ class GoodsReceiptReceiveViewModel(
 
     private fun doSubmit() {
         if (uiState.value.isSubmitting) return
+        if (uiState.value.isOffline) {
+            setBanner(GrBannerTone.WARNING, "Cần có mạng để hoàn tất.")
+            return
+        }
         mutableUiState.update { it.copy(isSubmitting = true, banner = null) }
         viewModelScope.launch {
             val result = goodsReceiptRepository.submitReceive(headerId)
@@ -462,6 +466,10 @@ class GoodsReceiptReceiveViewModel(
 
     private fun doComplete() {
         if (uiState.value.isCompleting) return
+        if (uiState.value.isOffline) {
+            setBanner(GrBannerTone.WARNING, "Cần có mạng để hoàn tất.")
+            return
+        }
         mutableUiState.update { it.copy(isCompleting = true, banner = null) }
         viewModelScope.launch {
             val result = goodsReceiptRepository.complete(headerId)

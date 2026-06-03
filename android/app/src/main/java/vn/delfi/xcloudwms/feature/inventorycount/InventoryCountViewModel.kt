@@ -335,6 +335,11 @@ class InventoryCountViewModel(
             return
         }
         if (state.isFinishing) return
+        if (state.isOffline) {
+            setBanner(IcBannerTone.WARNING, "Cần có mạng để hoàn tất.")
+            mutableUiState.update { it.copy(showFinishDialog = false) }
+            return
+        }
         mutableUiState.update { it.copy(isFinishing = true, showFinishDialog = false, banner = null) }
         viewModelScope.launch {
             val result = inventoryCountRepository.finish(headerId, note)

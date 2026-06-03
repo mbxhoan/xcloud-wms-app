@@ -18,6 +18,32 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 21:10 — Phase 10 offline-lite & sync (PA pilot)
+
+- Prompt summary: Triển khai offline-lite/reliability cho native app (prompt 10): connectivity monitor, offline banner, cache nhẹ user/warehouse/product/location, local draft PA/IC trước submit, retry GET/list/detail, request id idempotency cho API commit, conflict UI, thông báo rõ "Cần có mạng để hoàn tất" cho commit không queue được. Không silent queue GR/GI/PA/IC commit khi backend chưa idempotent; không show success khi chưa có response thành công.
+- Ticket/Issue ID: APP-PHASE10
+- Scope: `app/android` only. Không đổi DB/RPC/API/status contract; không sửa `scanner/`, `webapp/`, `supabase/`. Wiring sâu cho PA (pilot); chặn commit offline cho cả GR/GI/IC.
+- Main files changed:
+  - `core/network/RequestId.kt`, `core/network/RetryPolicy.kt` (mới)
+  - `core/network/NetworkClient.kt` (header `X-Request-Id` + retry GET)
+  - `core/storage/OfflineStore.kt` (mới), `data/putaway/PaOfflineCache.kt` (mới), `domain/model/PaDraftBuffer.kt` (mới)
+  - `data/putaway/PutawayRepository.kt` (cache fallback + submit operationId + map 409 → PA_CONFLICT)
+  - `feature/putaway/{PutawayUiState,PutawayViewModel,PutawayScreen}.kt` (offline submit block, idempotency, draft persist/restore, cache badge, conflict dialog)
+  - `core/di/AppContainer.kt`, `core/navigation/AppNavHost.kt` (DI/nav wiring)
+  - `feature/goodsissue/GoodsIssuePickViewModel.kt`, `feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt`, `feature/inventorycount/InventoryCountViewModel.kt` (chặn commit offline)
+  - `app/android/app/src/test/.../core/network/{RetryPolicyTest,RequestIdTest}.kt` (mới)
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:testDevDebugUnitTest` ✅ (10 test pass, compile main OK)
+  - `./gradlew :app:lintDevDebug` ❌ chỉ do 7 lỗi CÓ SẴN ở `DeviceHardwareRepository.kt` (Build.getSerial/IMEI permission) + `MainActivity.kt` (RestrictedApi dispatchKeyEvent); không có lỗi mới từ thay đổi này.
+- Commit message: `feat(app-sync): add offline lite draft and retry handling`
+- Notes/Risks:
+  - An toàn tồn kho: KHÔNG silent queue commit. Backend hiện có sync engine idempotent (`sync_operations.operation_id`) nhưng native app vẫn dùng RPC legacy (`rpc_pa_submit`/`rpc_ic_complete`/...) chưa nhận operation_id; vì vậy chỉ block commit khi offline + đính `X-Request-Id` (forward-compat, legacy bỏ qua) + KHÔNG auto-retry commit. Chuyển native sang RPC sync engine là việc riêng (pilot có flag, gated cross-app) — chưa làm ở đây.
+  - Retry chỉ áp dụng GET (idempotent) qua `RetryPolicy` (3 lần, backoff 400/800/1600ms, trần 2s). POST commit không retry mù.
+  - Idempotency PA: `pendingSubmitOperationId` giữ id để retry cùng id khi lỗi tạm thời (timeout/5xx); clear khi success/conflict/lỗi nghiệp vụ.
+  - Local draft PA = buffer form đang gõ (các dòng đã thêm vẫn ở server DRAFT), lưu `OfflineStore` (SharedPreferences `xcloud_wms_offline`), không lưu token. IC chưa wiring draft/cache (chỉ chặn commit offline) — follow-up.
+  - Cache PA chỉ phục vụ đọc/UX khi offline; backend vẫn là nguồn sự thật, validate lại lúc submit.
+
 ## 2026-06-03 18:40 — Phase 9 IC inventory count
 
 - Prompt summary: Triển khai module Inventory Count native cho `app/android` (prompt 09), parity scanner PWA `count/IcCountClient.tsx` + route `/app/count`: danh sách phiếu kiểm kê trong kho, mở phiếu xem snapshot/counted/diff từng dòng, auto `rpc_ic_start_counting`, đếm theo NONE (`rpc_ic_update_count` tuyệt đối) / LOT (`rpc_check_lot_scan` → `rpc_ic_add_detail`) / SERIAL (`rpc_check_serial_scan` → `rpc_ic_add_detail` qty=1, chặn trùng), kết thúc kiểm kê (`rpc_ic_complete` action COMPLETE_ONLY + ghi chú), đếm mù (ẩn tồn), refresh khi lệch trạng thái, map lỗi tiếng Việt.

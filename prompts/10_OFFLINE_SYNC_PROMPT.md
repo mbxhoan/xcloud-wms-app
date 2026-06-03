@@ -1,4 +1,4 @@
-# 10 — Offline-lite & Sync Prompt
+# H 10 — Offline-lite & Sync Prompt
 
 Triển khai offline-lite/reliability cho native app.
 

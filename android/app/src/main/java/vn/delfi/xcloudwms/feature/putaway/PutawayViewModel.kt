@@ -10,16 +10,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import vn.delfi.xcloudwms.core.error.AppError
+import vn.delfi.xcloudwms.core.error.AppException
 import vn.delfi.xcloudwms.core.error.toAppError
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.core.network.ConnectivityObserver
+import vn.delfi.xcloudwms.core.network.RequestId
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
 import vn.delfi.xcloudwms.data.putaway.PaAddLineRequest
+import vn.delfi.xcloudwms.data.putaway.PaOfflineCache
 import vn.delfi.xcloudwms.data.putaway.PutawayLineValidator
 import vn.delfi.xcloudwms.data.putaway.PutawayRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
+import vn.delfi.xcloudwms.domain.model.PaDraftBuffer
 import vn.delfi.xcloudwms.domain.model.PaProduct
 import vn.delfi.xcloudwms.domain.model.PaResolvedCode
 import vn.delfi.xcloudwms.domain.model.PaTrackingType
@@ -29,6 +34,8 @@ class PutawayViewModel(
     private val putawayRepository: PutawayRepository,
     private val sessionRepository: SessionRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val offlineCache: PaOfflineCache,
+    private val deviceId: String,
     private val logger: SafeLogger,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(PutawayUiState())
@@ -36,6 +43,9 @@ class PutawayViewModel(
 
     private var warehouseId: String? = null
     private var contextLoaded = false
+
+    /** Request id idempotency cho lần submit hiện tại; giữ lại để retry cùng id khi lỗi tạm thời. */
+    private var pendingSubmitOperationId: String? = null
 
     init {
         viewModelScope.launch {
@@ -94,12 +104,17 @@ class PutawayViewModel(
             val locationsResult = putawayRepository.loadLocations(wh)
             val productsResult = putawayRepository.loadProducts(wh)
 
-            val locations = locationsResult.getOrElse { throwable ->
-                applyContextError(throwable)
-                return@launch
-            }
-            val products = productsResult.getOrElse { throwable ->
-                applyContextError(throwable)
+            val locations = locationsResult.getOrNull()
+            val products = productsResult.getOrNull()
+
+            if (locations == null || products == null) {
+                // Online fail → thử dữ liệu đã cache để vẫn xem/soạn được (offline-lite).
+                if (loadFromCache(wh)) return@launch
+                applyContextError(
+                    locationsResult.exceptionOrNull()
+                        ?: productsResult.exceptionOrNull()
+                        ?: AppException(AppError("PA_CONTEXT_FAILED", "Không tải được dữ liệu sắp xếp.")),
+                )
                 return@launch
             }
 
@@ -108,10 +123,13 @@ class PutawayViewModel(
                 it.copy(
                     isLoadingContext = false,
                     contextError = null,
+                    usingCachedData = false,
                     locations = locations,
                     products = products,
                 )
             }
+
+            restoreDraftBuffer(wh)
 
             // Tiếp tục draft gần nhất nếu có (không chặn flow nếu lỗi).
             putawayRepository.loadActiveDraft(wh)
@@ -122,6 +140,86 @@ class PutawayViewModel(
                     }
                 }
                 .onFailure { logger.error(TAG, "Tải draft PA hiện có lỗi: ${it.message}") }
+        }
+    }
+
+    /** Phục vụ danh mục từ cache offline. Trả true nếu có đủ dữ liệu đã lưu để hiển thị. */
+    private fun loadFromCache(wh: String): Boolean {
+        val cachedLocations = putawayRepository.cachedLocations(wh)
+        val cachedProducts = putawayRepository.cachedProducts(wh)
+        if (cachedLocations.isNullOrEmpty() || cachedProducts.isNullOrEmpty()) {
+            return false
+        }
+        // Không set contextLoaded để khi có mạng lại sẽ tự tải dữ liệu mới.
+        mutableUiState.update {
+            it.copy(
+                isLoadingContext = false,
+                contextError = null,
+                usingCachedData = true,
+                locations = cachedLocations,
+                products = cachedProducts,
+                banner = PaBanner(
+                    BannerTone.WARNING,
+                    "Đang dùng dữ liệu đã lưu (ngoại tuyến). Một số thông tin có thể chưa cập nhật.",
+                ),
+            )
+        }
+        restoreDraftBuffer(wh)
+        return true
+    }
+
+    /** Khôi phục buffer nhập liệu đang soạn dở để không mất dữ liệu khi mạng yếu/app bị kill. */
+    private fun restoreDraftBuffer(wh: String) {
+        val buffer = offlineCache.loadDraft(wh) ?: return
+        if (buffer.warehouseId != wh || !buffer.isMeaningful) return
+        mutableUiState.update { state ->
+            state.copy(
+                fromLocationId = buffer.fromLocationId.ifBlank { state.fromLocationId },
+                toLocationId = buffer.toLocationId.ifBlank { state.toLocationId },
+                selectedProductId = buffer.selectedProductId ?: state.selectedProductId,
+                scannedCode = buffer.scannedCode.ifBlank { state.scannedCode },
+                qtyText = buffer.qtyText.ifBlank { state.qtyText },
+                lineNotes = buffer.lineNotes.ifBlank { state.lineNotes },
+                sessionNotes = buffer.sessionNotes.ifBlank { state.sessionNotes },
+            )
+        }
+    }
+
+    /** Lưu buffer nhập liệu hiện tại xuống local (best-effort). */
+    private fun touchDraft() {
+        val wh = warehouseId ?: return
+        val state = uiState.value
+        offlineCache.saveDraft(
+            PaDraftBuffer(
+                warehouseId = wh,
+                sessionId = state.session?.id,
+                fromLocationId = state.fromLocationId,
+                toLocationId = state.toLocationId,
+                selectedProductId = state.selectedProductId,
+                scannedCode = state.scannedCode,
+                qtyText = state.qtyText,
+                lineNotes = state.lineNotes,
+                sessionNotes = state.sessionNotes,
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    fun dismissConflict() {
+        mutableUiState.update { it.copy(conflict = null) }
+    }
+
+    /** Tải lại phiếu sau xung đột để đồng bộ trạng thái/dòng với server. */
+    fun reloadAfterConflict() {
+        val wh = warehouseId ?: return
+        mutableUiState.update { it.copy(conflict = null) }
+        viewModelScope.launch {
+            putawayRepository.loadActiveDraft(wh)
+                .onSuccess { session ->
+                    mutableUiState.update { it.copy(session = session, draftLines = if (session == null) emptyList() else it.draftLines) }
+                    if (session != null) refreshLines(session.id)
+                }
+                .onFailure { logger.error(TAG, "Tải lại phiếu PA sau xung đột lỗi: ${it.message}") }
         }
     }
 
@@ -138,6 +236,7 @@ class PutawayViewModel(
 
     fun updateSessionNotes(value: String) {
         mutableUiState.update { it.copy(sessionNotes = value) }
+        touchDraft()
     }
 
     fun startSession() {
@@ -184,10 +283,12 @@ class PutawayViewModel(
 
     fun selectFromLocation(id: String) {
         mutableUiState.update { it.copy(fromLocationId = id) }
+        touchDraft()
     }
 
     fun selectToLocation(id: String) {
         mutableUiState.update { it.copy(toLocationId = id) }
+        touchDraft()
     }
 
     fun selectProduct(productId: String?) {
@@ -199,18 +300,22 @@ class PutawayViewModel(
                 qtyText = if (product?.trackingType == PaTrackingType.SERIAL) "1" else state.qtyText,
             )
         }
+        touchDraft()
     }
 
     fun updateScannedCode(value: String) {
         mutableUiState.update { it.copy(scannedCode = value) }
+        touchDraft()
     }
 
     fun updateQty(value: String) {
         mutableUiState.update { it.copy(qtyText = value) }
+        touchDraft()
     }
 
     fun updateLineNotes(value: String) {
         mutableUiState.update { it.copy(lineNotes = value) }
+        touchDraft()
     }
 
     fun dismissBanner() {
@@ -415,6 +520,7 @@ class PutawayViewModel(
                                 banner = PaBanner(BannerTone.SUCCESS, "Đã lưu dòng nháp vào phiên sắp xếp."),
                             )
                         }
+                        touchDraft()
                         refreshLines(session.id)
                         refreshProducts(wh)
                     }
@@ -508,10 +614,24 @@ class PutawayViewModel(
         }
         // Chống double-tap: nếu đang submit thì bỏ qua lần nhấn sau.
         if (state.isSubmitting) return
-        mutableUiState.update { it.copy(isSubmitting = true, banner = null) }
+        // Chặn commit khi offline: backend chưa idempotent nên KHÔNG silent queue (tránh sai stock).
+        if (state.isOffline || !connectivityObserver.currentOnline()) {
+            setBanner(BannerTone.WARNING, OFFLINE_COMMIT_MESSAGE)
+            return
+        }
+        // Tạo request id idempotency một lần cho lần submit này; giữ lại để retry cùng id khi lỗi tạm thời.
+        val operationId = pendingSubmitOperationId
+            ?: RequestId.forCommit(
+                feature = "PA_SUBMIT",
+                documentId = session.id,
+                deviceId = deviceId,
+            ).also { pendingSubmitOperationId = it }
+
+        mutableUiState.update { it.copy(isSubmitting = true, banner = null, conflict = null) }
         viewModelScope.launch {
-            putawayRepository.submit(session.id)
+            putawayRepository.submit(session.id, operationId)
                 .onSuccess {
+                    pendingSubmitOperationId = null
                     mutableUiState.update {
                         it.copy(
                             isSubmitting = false,
@@ -524,11 +644,27 @@ class PutawayViewModel(
                     warehouseId?.let { refreshProducts(it) }
                 }
                 .onFailure { throwable ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSubmitting = false,
-                            banner = PaBanner(BannerTone.ERROR, "Hoàn tất thất bại. ${throwable.toAppError().message}"),
-                        )
+                    val appError = throwable.toAppError()
+                    when {
+                        appError.code == "PA_CONFLICT" -> {
+                            // Xung đột (phiếu/tồn đổi): không tái dùng id, hiển thị conflict + tải lại.
+                            pendingSubmitOperationId = null
+                            mutableUiState.update {
+                                it.copy(isSubmitting = false, conflict = PaConflict(appError.message))
+                            }
+                            refreshLines(session.id)
+                        }
+
+                        else -> {
+                            // Chỉ giữ id để retry cùng id khi lỗi tạm thời (timeout/5xx).
+                            if (!appError.retryable) pendingSubmitOperationId = null
+                            mutableUiState.update {
+                                it.copy(
+                                    isSubmitting = false,
+                                    banner = PaBanner(BannerTone.ERROR, "Hoàn tất thất bại. ${appError.message}"),
+                                )
+                            }
+                        }
                     }
                 }
         }
@@ -572,6 +708,7 @@ class PutawayViewModel(
                 lineNotes = "",
             )
         }
+        warehouseId?.let { offlineCache.clearDraft(it) }
     }
 
     private fun setBanner(tone: BannerTone, message: String) {
@@ -580,12 +717,15 @@ class PutawayViewModel(
 
     companion object {
         private const val TAG = "PutawayViewModel"
+        private const val OFFLINE_COMMIT_MESSAGE = "Cần có mạng để hoàn tất."
 
         fun factory(
             scannerManager: ScannerManager,
             putawayRepository: PutawayRepository,
             sessionRepository: SessionRepository,
             connectivityObserver: ConnectivityObserver,
+            offlineCache: PaOfflineCache,
+            deviceId: String,
             logger: SafeLogger,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -594,6 +734,8 @@ class PutawayViewModel(
                     putawayRepository = putawayRepository,
                     sessionRepository = sessionRepository,
                     connectivityObserver = connectivityObserver,
+                    offlineCache = offlineCache,
+                    deviceId = deviceId,
                     logger = logger,
                 )
             }

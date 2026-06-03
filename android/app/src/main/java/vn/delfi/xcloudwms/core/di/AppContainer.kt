@@ -18,6 +18,7 @@ import vn.delfi.xcloudwms.core.scanner.adapter.KeyboardWedgeScannerAdapter
 import vn.delfi.xcloudwms.core.scanner.adapter.ManualScannerAdapter
 import vn.delfi.xcloudwms.core.security.SecureSessionStorage
 import vn.delfi.xcloudwms.core.storage.AppPreferences
+import vn.delfi.xcloudwms.core.storage.OfflineStore
 import vn.delfi.xcloudwms.data.auth.AuthRepository
 import vn.delfi.xcloudwms.data.auth.SupabaseAuthRepository
 import vn.delfi.xcloudwms.data.device.DefaultDeviceHardwareRepository
@@ -31,6 +32,7 @@ import vn.delfi.xcloudwms.data.gr.GoodsReceiptRepository
 import vn.delfi.xcloudwms.data.ic.DefaultInventoryCountRepository
 import vn.delfi.xcloudwms.data.ic.InventoryCountRepository
 import vn.delfi.xcloudwms.data.putaway.DefaultPutawayRepository
+import vn.delfi.xcloudwms.data.putaway.PaOfflineCache
 import vn.delfi.xcloudwms.data.putaway.PutawayRepository
 import vn.delfi.xcloudwms.data.stock.DefaultStockLookupRepository
 import vn.delfi.xcloudwms.data.stock.StockLookupRepository
@@ -48,6 +50,8 @@ interface AppContainer {
     val inventoryCountRepository: InventoryCountRepository
     val deviceHardwareRepository: DeviceHardwareRepository
     val connectivityObserver: ConnectivityObserver
+    val putawayOfflineCache: PaOfflineCache
+    val deviceId: String
 }
 
 class DefaultAppContainer(
@@ -70,6 +74,14 @@ class DefaultAppContainer(
         defaultConnectionConfig = appConfig.defaultConnectionConfig,
     )
     private val secureSessionStorage = SecureSessionStorage(application)
+    private val offlineStore = OfflineStore(application)
+
+    override val putawayOfflineCache: PaOfflineCache = PaOfflineCache(
+        store = offlineStore,
+        logger = logger,
+    )
+
+    override val deviceId: String = offlineStore.deviceInstallId()
 
     private val authRepository: AuthRepository = SupabaseAuthRepository(
         networkClient = networkClient,
@@ -117,6 +129,7 @@ class DefaultAppContainer(
         networkClient = networkClient,
         appPreferences = appPreferences,
         secureSessionStorage = secureSessionStorage,
+        offlineCache = putawayOfflineCache,
         logger = logger,
     )
 

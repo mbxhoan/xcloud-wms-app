@@ -225,6 +225,8 @@ fun AppNavHost(appContainer: AppContainer) {
                     putawayRepository = appContainer.putawayRepository,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    offlineCache = appContainer.putawayOfflineCache,
+                    deviceId = appContainer.deviceId,
                     logger = appContainer.logger,
                 ),
             )

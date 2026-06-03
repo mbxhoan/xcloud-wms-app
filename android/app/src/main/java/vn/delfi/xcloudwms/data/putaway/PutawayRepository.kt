@@ -71,13 +71,24 @@ interface PutawayRepository {
 
     suspend fun deleteLine(detailId: String): Result<Unit>
 
-    suspend fun submit(headerId: String): Result<Unit>
+    /**
+     * Hoàn tất phiên. [operationId] là request id idempotency gửi kèm header `X-Request-Id`;
+     * caller giữ lại id để retry cùng id khi timeout (xem `docs/06` mục 4).
+     */
+    suspend fun submit(headerId: String, operationId: String? = null): Result<Unit>
+
+    /** Danh mục vị trí đã cache offline cho kho (null nếu chưa từng tải online). */
+    fun cachedLocations(warehouseId: String): List<PaLocation>?
+
+    /** Danh mục sản phẩm đã cache offline cho kho (null nếu chưa từng tải online). */
+    fun cachedProducts(warehouseId: String): List<PaProduct>?
 }
 
 class DefaultPutawayRepository(
     private val networkClient: NetworkClient,
     private val appPreferences: AppPreferences,
     private val secureSessionStorage: SecureSessionStorage,
+    private val offlineCache: PaOfflineCache,
     private val logger: SafeLogger,
 ) : PutawayRepository {
 
@@ -103,7 +114,7 @@ class DefaultPutawayRepository(
                     name = row.optStringOrNull("name"),
                 )
             }
-        }
+        }.onSuccess { offlineCache.saveLocations(warehouseId, it) }
     }
 
     override suspend fun loadProducts(warehouseId: String): Result<List<PaProduct>> {
@@ -111,7 +122,14 @@ class DefaultPutawayRepository(
             ?: return failure("PA_WAREHOUSE_INVALID", "Kho hiện tại không hợp lệ.")
         return rpc("rpc_pa_list_products", JSONObject().put("p_warehouse_id", warehouseIdInt))
             .map { body -> parseProducts(body) }
+            .onSuccess { offlineCache.saveProducts(warehouseId, it) }
     }
+
+    override fun cachedLocations(warehouseId: String): List<PaLocation>? =
+        offlineCache.loadLocations(warehouseId)
+
+    override fun cachedProducts(warehouseId: String): List<PaProduct>? =
+        offlineCache.loadProducts(warehouseId)
 
     override suspend fun loadActiveDraft(warehouseId: String): Result<PaSession?> {
         val warehouseIdInt = warehouseId.toIntId()
@@ -388,10 +406,14 @@ class DefaultPutawayRepository(
         return rpc("rpc_pa_delete_line", JSONObject().put("p_detail_id", detailIdInt)).map { }
     }
 
-    override suspend fun submit(headerId: String): Result<Unit> {
+    override suspend fun submit(headerId: String, operationId: String?): Result<Unit> {
         val headerIdInt = headerId.toIntId()
             ?: return failure("PA_HEADER_INVALID", "ID phiên PA không hợp lệ.")
-        val result = rpc("rpc_pa_submit", JSONObject().put("p_pa_header_id", headerIdInt)).map { }
+        val result = rpc(
+            function = "rpc_pa_submit",
+            body = JSONObject().put("p_pa_header_id", headerIdInt),
+            idempotencyKey = operationId,
+        ).map { }
         if (result.isSuccess) {
             // Hậu xử lý threshold events giống scanner PWA; best-effort, không chặn kết quả submit.
             rpc("rpc_process_inventory_threshold_events", JSONObject().put("p_limit", THRESHOLD_LIMIT))
@@ -402,7 +424,11 @@ class DefaultPutawayRepository(
 
     // region HTTP helpers
 
-    private suspend fun rpc(function: String, body: JSONObject): Result<String?> {
+    private suspend fun rpc(
+        function: String,
+        body: JSONObject,
+        idempotencyKey: String? = null,
+    ): Result<String?> {
         val ctx = requireContext() ?: return failure(
             "SESSION_REQUIRED",
             "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.",
@@ -414,6 +440,7 @@ class DefaultPutawayRepository(
                 method = HttpMethod.POST,
                 body = body.toString(),
                 authToken = ctx.second,
+                idempotencyKey = idempotencyKey,
             ),
         )
         return result.toResult(function)
@@ -462,6 +489,15 @@ class DefaultPutawayRepository(
                         status == HTTP_FORBIDDEN || PutawayErrorMapper.isPermissionError(backendMessage) -> failure(
                             "PERMISSION_DENIED",
                             "Bạn không có quyền thao tác sắp xếp cho kho hoặc phiếu đã chọn.",
+                        )
+
+                        status == HTTP_CONFLICT -> Result.failure(
+                            AppException(
+                                AppError(
+                                    code = "PA_CONFLICT",
+                                    message = PutawayErrorMapper.toUserMessage(backendMessage),
+                                ),
+                            ),
                         )
 
                         else -> Result.failure(
@@ -694,6 +730,7 @@ class DefaultPutawayRepository(
         const val HTTP_SUCCESS_MAX = 299
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_FORBIDDEN = 403
+        const val HTTP_CONFLICT = 409
         const val HTTP_SERVER_ERROR = 500
         const val PA_HEADER_SELECT =
             "id,code,status,warehouse_id,pic_id,notes,completed_at,created_at,updated_at"
