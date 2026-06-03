@@ -52,10 +52,34 @@ app/android/local.properties
 Dùng Gradle build config để có:
 
 ```txt
+SUPABASE_URL_DEV
+SUPABASE_ANON_KEY_DEV
+SUPABASE_URL_STAGING
+SUPABASE_ANON_KEY_STAGING
+SUPABASE_URL_PROD
+SUPABASE_ANON_KEY_PROD
+```
+
+Hoặc nếu team đang dùng tên cũ, app vẫn chấp nhận fallback:
+
+```txt
 BASE_API_URL_DEV
 BASE_API_URL_STAGING
 BASE_API_URL_PROD
+ANON_KEY_DEV
+ANON_KEY_STAGING
+ANON_KEY_PROD
 ```
+
+Ví dụ:
+
+```txt
+sdk.dir=/Users/<user>/Library/Android/sdk
+SUPABASE_URL_DEV=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY_DEV=<anon-key>
+```
+
+Khi app chưa có cấu hình lưu cục bộ, bản build `dev/staging/prod` sẽ tự lấy cặp URL/key tương ứng từ `local.properties` và prefill ở màn đăng nhập.
 
 Không commit secrets.
 
@@ -84,7 +108,8 @@ Emulator dùng để test UI/auth/API cơ bản, không đại diện cho PDA sc
 4. Cấu hình scanner mode trên PDA:
    - Keyboard wedge hoặc Broadcast/Intent.
    - Nếu broadcast: set action/extra key đúng docs adapter.
-5. Test nút scan vật lý ở màn Stock Lookup trước.
+5. Nếu app đứng ở màn `Đăng nhập`, kiểm tra lại `local.properties` hoặc nhập thủ công `Địa chỉ kết nối` + `Khóa truy cập công khai`, sau đó bấm `Lưu cấu hình`.
+6. Test nút scan vật lý ở màn Stock Lookup trước.
 
 ## 7. Build debug APK
 

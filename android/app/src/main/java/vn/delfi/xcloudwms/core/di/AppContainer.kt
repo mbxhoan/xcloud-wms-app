@@ -56,7 +56,10 @@ class DefaultAppContainer(
         logger = logger,
     )
 
-    private val appPreferences = AppPreferences(application)
+    private val appPreferences = AppPreferences(
+        context = application,
+        defaultConnectionConfig = appConfig.defaultConnectionConfig,
+    )
     private val secureSessionStorage = SecureSessionStorage(application)
 
     private val authRepository: AuthRepository = SupabaseAuthRepository(

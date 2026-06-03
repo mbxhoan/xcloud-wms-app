@@ -5,23 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="815e146f-2593-49e1-b611-39652a3498f7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/config/AppConfig.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/config/AppConfig.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppDestination.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppDestination.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/network/NetworkClient.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/network/NetworkClient.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/scanner/ScannerManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/scanner/ScannerManager.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/storage/AppPreferences.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/storage/AppPreferences.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/domain/model/UserSession.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/domain/model/UserSession.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeUiState.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginUiState.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/res/values/strings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../prompts/03_AUTH_TENANT_WAREHOUSE_PROMPT.md" beforeDir="false" afterPath="$PROJECT_DIR$/../prompts/03_AUTH_TENANT_WAREHOUSE_PROMPT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../prompts/prompt_map.md" beforeDir="false" afterPath="$PROJECT_DIR$/../prompts/prompt_map.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/libs.versions.toml" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/libs.versions.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,7 +25,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=21291A0120]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -57,11 +51,11 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GradleScriptDefinitionsStorage" workingDir="$PROJECT_DIR$" gradleHome="$USER_HOME$/.gradle/wrapper/dists/gradle-8.9-bin/90cnw93cvbtalezasaz0blq0a/gradle-8.9" javaHome="$APPLICATION_HOME_DIR$/jbr/Contents/Home" gradleVersion="8.9" />
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 1,
-  "fromUser": false
-}]]></component>
+  <component name="GradleScriptDefinitionsStorage" workingDir="$PROJECT_DIR$" gradleHome="$USER_HOME$/.gradle/wrapper/dists/gradle-8.13-bin/5xuhj0ry160q40clulazy9h7d/gradle-8.13" javaHome="$APPLICATION_HOME_DIR$/jbr/Contents/Home" gradleVersion="8.13" />
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3ERL8VF3v0H9FyxcaQIh6GV5PCc" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -69,6 +63,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Android App.app.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
@@ -78,7 +73,8 @@
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/leviackerman/Codes/xcloud-wms-workspace/app/android"
+    "last_opened_file_path": "/Users/leviackerman/Codes/xcloud-wms-workspace/app/android",
+    "settings.editor.selected.configurable": "device.mirroring"
   }
 }]]></component>
   <component name="RunManager">

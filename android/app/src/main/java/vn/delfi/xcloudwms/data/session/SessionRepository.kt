@@ -17,6 +17,8 @@ import vn.delfi.xcloudwms.domain.model.UserSession
 interface SessionRepository {
     val session: StateFlow<UserSession>
 
+    fun currentConnectionConfig(): ConnectionConfig?
+
     suspend fun restoreSession()
 
     suspend fun signIn(
@@ -52,6 +54,8 @@ class DefaultSessionRepository(
     )
 
     override val session: StateFlow<UserSession> = mutableSession.asStateFlow()
+
+    override fun currentConnectionConfig(): ConnectionConfig? = authRepository.getConnectionConfig()
 
     override suspend fun restoreSession() {
         val connectionConfig = authRepository.getConnectionConfig()

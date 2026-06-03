@@ -21,6 +21,15 @@ class LoginViewModel(
     val uiState: StateFlow<LoginUiState> = mutableUiState.asStateFlow()
 
     init {
+        sessionRepository.currentConnectionConfig()?.let { connectionConfig ->
+            mutableUiState.update {
+                it.copy(
+                    connectionUrl = connectionConfig.normalizedUrl,
+                    anonKey = connectionConfig.anonKey,
+                )
+            }
+        }
+
         viewModelScope.launch {
             sessionRepository.session.collect { session ->
                 mutableUiState.update { current ->

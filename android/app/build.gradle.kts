@@ -1,7 +1,35 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun resolveBuildValue(vararg keys: String): String {
+    return keys.firstNotNullOfOrNull { key ->
+        providers.gradleProperty(key).orNull?.trim()?.takeIf { it.isNotEmpty() }
+            ?: providers.environmentVariable(key).orNull?.trim()?.takeIf { it.isNotEmpty() }
+            ?: localProperties.getProperty(key)?.trim()?.takeIf { it.isNotEmpty() }
+    }.orEmpty()
+}
+
+fun String.asBuildConfigString(): String {
+    return "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+}
+
+val devConnectionUrl = resolveBuildValue("SUPABASE_URL_DEV", "BASE_API_URL_DEV")
+val devAnonKey = resolveBuildValue("SUPABASE_ANON_KEY_DEV", "ANON_KEY_DEV")
+val stagingConnectionUrl = resolveBuildValue("SUPABASE_URL_STAGING", "BASE_API_URL_STAGING")
+val stagingAnonKey = resolveBuildValue("SUPABASE_ANON_KEY_STAGING", "ANON_KEY_STAGING")
+val prodConnectionUrl = resolveBuildValue("SUPABASE_URL_PROD", "BASE_API_URL_PROD")
+val prodAnonKey = resolveBuildValue("SUPABASE_ANON_KEY_PROD", "ANON_KEY_PROD")
 
 android {
     namespace = "vn.delfi.xcloudwms"
@@ -30,7 +58,13 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             buildConfigField("String", "BUILD_ENV", "\"dev\"")
-            buildConfigField("String", "BASE_API_URL", "\"https://dev-api.example.invalid/\"")
+            buildConfigField(
+                "String",
+                "BASE_API_URL",
+                devConnectionUrl.ifBlank { "https://dev-api.example.invalid/" }.asBuildConfigString(),
+            )
+            buildConfigField("String", "DEFAULT_CONNECTION_URL", devConnectionUrl.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_CONNECTION_ANON_KEY", devAnonKey.asBuildConfigString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
             buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "false")
         }
@@ -40,7 +74,13 @@ android {
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
             buildConfigField("String", "BUILD_ENV", "\"staging\"")
-            buildConfigField("String", "BASE_API_URL", "\"https://staging-api.example.invalid/\"")
+            buildConfigField(
+                "String",
+                "BASE_API_URL",
+                stagingConnectionUrl.ifBlank { "https://staging-api.example.invalid/" }.asBuildConfigString(),
+            )
+            buildConfigField("String", "DEFAULT_CONNECTION_URL", stagingConnectionUrl.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_CONNECTION_ANON_KEY", stagingAnonKey.asBuildConfigString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
             buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "false")
         }
@@ -48,7 +88,13 @@ android {
         create("prod") {
             dimension = "environment"
             buildConfigField("String", "BUILD_ENV", "\"prod\"")
-            buildConfigField("String", "BASE_API_URL", "\"https://api.example.invalid/\"")
+            buildConfigField(
+                "String",
+                "BASE_API_URL",
+                prodConnectionUrl.ifBlank { "https://api.example.invalid/" }.asBuildConfigString(),
+            )
+            buildConfigField("String", "DEFAULT_CONNECTION_URL", prodConnectionUrl.asBuildConfigString())
+            buildConfigField("String", "DEFAULT_CONNECTION_ANON_KEY", prodAnonKey.asBuildConfigString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
             buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "true")
         }

@@ -10,6 +10,7 @@ import vn.delfi.xcloudwms.core.scanner.BroadcastScannerConfig
 
 class AppPreferences(
     context: Context,
+    private val defaultConnectionConfig: ConnectionConfig? = null,
 ) {
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -48,7 +49,7 @@ class AppPreferences(
             .remove(KEY_CONNECTION_URL)
             .remove(KEY_CONNECTION_ANON_KEY)
             .apply()
-        mutableConnectionConfig.value = null
+        mutableConnectionConfig.value = defaultConnectionConfig
     }
 
     fun getSelectedWarehouseId(userId: String): String? {
@@ -91,7 +92,7 @@ class AppPreferences(
         return ConnectionConfig.create(
             url = url.orEmpty(),
             anonKey = anonKey.orEmpty(),
-        )
+        ) ?: defaultConnectionConfig
     }
 
     private fun warehousePreferenceKey(userId: String): String {

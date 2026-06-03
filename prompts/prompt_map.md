@@ -18,6 +18,29 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 15:05 — Fix native Android login bootstrap on PDA
+
+- Prompt summary: Khi cắm PDA chạy app bằng Android Studio, Android Studio báo lỗi `Error starting live edit`, còn app trên PDA dừng ở màn đăng nhập. Cần xử lý để app native bootstrap kết nối đúng hơn trên thiết bị thật.
+- Ticket/Issue ID: (none)
+- Scope: `app/android + app/docs` - không đổi DB/RPC/API/status contract; chỉ vá cơ chế nạp cấu hình kết nối mặc định và cập nhật tài liệu chạy PDA.
+- Main files changed:
+  - `app/android/app/build.gradle.kts`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/config/AppConfig.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/storage/AppPreferences.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginViewModel.kt`
+  - `app/docs/08_BUILD_DEPLOY_TEST_A_TO_Z.md`
+  - `app/prompts/prompt_map.md`
+- Tests run:
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:assembleDevDebug` ✅ pass
+  - `cd app && git diff --check` ✅
+- Commit message: `fix(app-auth): bootstrap default connection config for pda builds`
+- Notes/Risks:
+  - Popup `Error starting live edit` là lỗi tooling của Android Studio/Compose Live Edit, không phải lỗi business của app; cần xử lý ở IDE hoặc tắt Live Edit khi chạy PDA.
+  - Build hiện còn warning unchecked cast trong `SupabaseAuthRepository.kt` từ phase auth cũ, nhưng không chặn assemble và không nằm trong phạm vi fix PDA lần này.
+  - App native auth vẫn bám audit cũ: không hard-code host/key trong source. URL/key chỉ được nạp từ `local.properties`, env hoặc cấu hình người dùng lưu trên máy.
+
 ## 2026-06-01 18:40 — Phase 7 GI goods issue picking
 
 - Prompt summary: Triển khai module Goods Issue Picking native cho `app/android` (prompt 07), parity scanner PWA `GiPickClient.tsx` + route `/app/outbound`: danh sách phiếu xuất được phân công theo kho (CREATED/PICKING/PICKED), mở phiếu xem tiến độ pick từng dòng, auto `rpc_gi_start_picking`, quét serial (`rpc_gi_check_serial_scan` + `rpc_gi_bind_serial_to_summary_line` cho summary mode, hoặc cập nhật `gi_details.picked_quantity`), quét lot (`rpc_gi_check_lot_scan` + cập nhật picked_quantity), pick số lượng NONE (cập nhật detail reserved/insert), chống overpick phía client + backend, chốt picking (`rpc_gi_submit`) và xuất kho (`rpc_gi_complete`) với confirm khi còn thiếu, refresh khi lệch trạng thái, map lỗi nghiệp vụ sang tiếng Việt, offline/loading/disabled states.
