@@ -12,9 +12,13 @@ enum class AppDestination(val route: String) {
     Putaway("putaway"),
     GoodsIssueList("goods_issue"),
     GoodsIssuePick("goods_issue/{headerId}"),
+    GoodsReceiptList("goods_receipt"),
+    GoodsReceiptReceive("goods_receipt/{headerId}"),
     ;
 
     companion object {
         fun goodsIssuePickRoute(headerId: String): String = "goods_issue/$headerId"
+
+        fun goodsReceiptReceiveRoute(headerId: String): String = "goods_receipt/$headerId"
     }
 }

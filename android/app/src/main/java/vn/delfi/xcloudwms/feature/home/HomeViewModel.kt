@@ -42,8 +42,10 @@ class HomeViewModel(
         val moduleDefinitions = listOf(
             ModuleDefinition(
                 title = "Nhận hàng",
-                note = "Xem và thao tác phiếu nhập được phân công.",
+                note = "Xem và thao tác phiếu nhập trong kho làm việc.",
                 requiredPermissions = setOf("gr.scan"),
+                actionKey = ACTION_GOODS_RECEIPT,
+                actionLabel = "Mở danh sách phiếu nhập",
             ),
             ModuleDefinition(
                 title = "Xuất hàng",
@@ -105,6 +107,7 @@ class HomeViewModel(
         const val ACTION_STOCK_LOOKUP = "stock_lookup"
         const val ACTION_PUTAWAY = "putaway"
         const val ACTION_GOODS_ISSUE = "goods_issue"
+        const val ACTION_GOODS_RECEIPT = "goods_receipt"
 
         fun factory(
             sessionRepository: SessionRepository,

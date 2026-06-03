@@ -26,6 +26,8 @@ import vn.delfi.xcloudwms.data.session.DefaultSessionRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
 import vn.delfi.xcloudwms.data.gi.DefaultGoodsIssueRepository
 import vn.delfi.xcloudwms.data.gi.GoodsIssueRepository
+import vn.delfi.xcloudwms.data.gr.DefaultGoodsReceiptRepository
+import vn.delfi.xcloudwms.data.gr.GoodsReceiptRepository
 import vn.delfi.xcloudwms.data.putaway.DefaultPutawayRepository
 import vn.delfi.xcloudwms.data.putaway.PutawayRepository
 import vn.delfi.xcloudwms.data.stock.DefaultStockLookupRepository
@@ -40,6 +42,7 @@ interface AppContainer {
     val stockLookupRepository: StockLookupRepository
     val putawayRepository: PutawayRepository
     val goodsIssueRepository: GoodsIssueRepository
+    val goodsReceiptRepository: GoodsReceiptRepository
     val deviceHardwareRepository: DeviceHardwareRepository
     val connectivityObserver: ConnectivityObserver
 }
@@ -115,6 +118,13 @@ class DefaultAppContainer(
     )
 
     override val goodsIssueRepository: GoodsIssueRepository = DefaultGoodsIssueRepository(
+        networkClient = networkClient,
+        appPreferences = appPreferences,
+        secureSessionStorage = secureSessionStorage,
+        logger = logger,
+    )
+
+    override val goodsReceiptRepository: GoodsReceiptRepository = DefaultGoodsReceiptRepository(
         networkClient = networkClient,
         appPreferences = appPreferences,
         secureSessionStorage = secureSessionStorage,

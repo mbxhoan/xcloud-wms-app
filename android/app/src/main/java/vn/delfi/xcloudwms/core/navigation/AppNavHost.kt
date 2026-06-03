@@ -21,6 +21,10 @@ import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListScreen
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListViewModel
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssuePickScreen
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssuePickViewModel
+import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptListScreen
+import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptListViewModel
+import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptReceiveScreen
+import vn.delfi.xcloudwms.feature.goodsreceipt.GoodsReceiptReceiveViewModel
 import vn.delfi.xcloudwms.feature.home.HomeScreen
 import vn.delfi.xcloudwms.feature.home.HomeViewModel
 import vn.delfi.xcloudwms.feature.login.LoginScreen
@@ -172,6 +176,9 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenGoodsIssue = {
                     navController.navigate(AppDestination.GoodsIssueList.route)
                 },
+                onOpenGoodsReceipt = {
+                    navController.navigate(AppDestination.GoodsReceiptList.route)
+                },
             )
         }
 
@@ -254,6 +261,45 @@ fun AppNavHost(appContainer: AppContainer) {
                 ),
             )
             GoodsIssuePickScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(AppDestination.GoodsReceiptList.route) {
+            val viewModel: GoodsReceiptListViewModel = viewModel(
+                factory = GoodsReceiptListViewModel.factory(
+                    scannerManager = appContainer.scannerManager,
+                    goodsReceiptRepository = appContainer.goodsReceiptRepository,
+                    sessionRepository = appContainer.sessionRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            GoodsReceiptListScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onOpenHeader = { headerId ->
+                    navController.navigate(AppDestination.goodsReceiptReceiveRoute(headerId))
+                },
+            )
+        }
+
+        composable(
+            route = AppDestination.GoodsReceiptReceive.route,
+            arguments = listOf(navArgument("headerId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val headerId = backStackEntry.arguments?.getString("headerId").orEmpty()
+            val viewModel: GoodsReceiptReceiveViewModel = viewModel(
+                factory = GoodsReceiptReceiveViewModel.factory(
+                    headerId = headerId,
+                    scannerManager = appContainer.scannerManager,
+                    goodsReceiptRepository = appContainer.goodsReceiptRepository,
+                    connectivityObserver = appContainer.connectivityObserver,
+                    logger = appContainer.logger,
+                ),
+            )
+            GoodsReceiptReceiveScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )

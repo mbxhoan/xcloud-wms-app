@@ -18,6 +18,30 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 17:40 — Phase 8 GR goods receipt receiving
+
+- Prompt summary: Triển khai module Goods Receipt Receiving native cho `app/android` (prompt 08), parity scanner PWA `inbound/GrReceiveClient.tsx` + route `/app/inbound`: danh sách phiếu nhập trong kho (CREATED/RECEIVING/RECEIVED), mở phiếu xem tiến độ expected/received từng dòng, auto `rpc_gr_start_receiving`, nhận hàng theo location/product/lot/serial/qty (NONE: qty+location; LOT: `rpc_gr_resolve_lot_scan`+NSX/HSD nếu require/FEFO; SERIAL: `rpc_gr_resolve_serial_scan` qty=1, chặn trùng serial trong phiên), ghi `gr_details` qua PostgREST, chốt nhận (`rpc_gr_submit_receive`) + hoàn tất (`rpc_gr_complete`) với confirm khi còn thiếu, refresh khi lệch trạng thái, map lỗi nghiệp vụ sang tiếng Việt, offline/loading/disabled states.
+- Ticket/Issue ID: APP-PHASE8
+- Scope: `app/android` - chỉ gọi RPC/REST GR đã audit từ scanner PWA + migrations; không đổi DB/RPC/API/status contract; không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/GoodsReceipt.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/gr/{GoodsReceiptRepository,GoodsReceiptErrorMapper}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/{GoodsReceiptListUiState,GoodsReceiptListViewModel,GoodsReceiptListScreen,GoodsReceiptReceiveUiState,GoodsReceiptReceiveViewModel,GoodsReceiptReceiveScreen}.kt`
+  - `core/di/AppContainer.kt`, `core/navigation/AppDestination.kt`, `core/navigation/AppNavHost.kt`
+  - `feature/home/HomeViewModel.kt`, `feature/home/HomeScreen.kt`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅
+  - `cd app/android && ./gradlew :app:lintDevDebug` ❌ chỉ do 7 lỗi có sẵn (`MissingPermission` ở `DeviceHardwareRepository`, `RestrictedApi` ở `MainActivity.dispatchKeyEvent`); file mới GR không có lint finding nào.
+- Commit message: `feat(app-gr): implement goods receipt receiving flow`
+- Notes/Risks:
+  - Không có RPC "release stock" riêng: stock post khi `rpc_gr_complete` (ledger GR_IN). UI 2 nút: `Chốt nhận hàng` (`rpc_gr_submit_receive` → RECEIVED/COMPLETED) + `Hoàn tất nhập kho` (`rpc_gr_complete` → COMPLETED). Client optimistic + refresh; tồn do backend quyết định.
+  - List scope = toàn bộ phiếu nhận được trong kho hiện tại (warehouse_id + status), không lọc theo `assigned_scanner_user_id` (đồng bộ hành vi list GI native).
+  - Vị trí nhập chọn từ `locations` của kho phiếu (đảm bảo location thuộc đúng kho); ghi `gr_details` gồm cả `manufacture_date` + `manufactured_date` (legacy) để tương thích schema.
+  - Không insert thẳng `serials`/`lots`; chỉ qua RPC resolve (SECURITY DEFINER). Chặn trùng serial trong phiên ở client + backend.
+  - NSX/HSD nhập dạng text `YYYY-MM-DD`, validate client (bắt buộc theo require_*/FEFO, HSD≥NSX, HSD không quá khứ); backend vẫn enforce.
+  - Chưa hỗ trợ luồng tạo phiếu PDA-initiated (`rpc_gr_pda_*`) — phạm vi phase sau.
+
 ## 2026-06-03 17:02 — Add PDA hardware diagnostics screen
 
 - Prompt summary: Ở trang chủ cần có phần `Thông tin phần cứng`; bấm vào sẽ mở màn hiển thị toàn bộ thông tin thiết bị mà app Android có thể đọc được như model, device name, số điện thoại nếu có, IMEI, serial, Android version, IP, MAC, Bluetooth và các trạng thái liên quan.
