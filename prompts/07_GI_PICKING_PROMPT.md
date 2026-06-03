@@ -1,4 +1,4 @@
-# H - 07 — GI Picking Prompt
+# 07 — GI Picking Prompt
 
 Triển khai module Goods Issue Picking cho Android native app.
 

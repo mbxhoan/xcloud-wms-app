@@ -6,15 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="815e146f-2593-49e1-b611-39652a3498f7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/XcloudScaffold.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/XcloudScaffold.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/auth/SupabaseAuthRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/auth/SupabaseAuthRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeUiState.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/ScannerTestScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/ScannerTestScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/ScannerTestUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/ScannerTestUiState.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/ScannerTestViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/ScannerTestViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../prompts/prompt_map.md" beforeDir="false" afterPath="$PROJECT_DIR$/../prompts/prompt_map.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,7 +53,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Android App.app.executor": "Debug",
+    "Android App.app.executor": "Run",
     "GradleDaemonJvmCriteriaMigrationNotification.isNotificationDisabled": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",

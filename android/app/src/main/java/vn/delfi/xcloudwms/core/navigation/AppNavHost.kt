@@ -15,6 +15,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import vn.delfi.xcloudwms.core.di.AppContainer
 import vn.delfi.xcloudwms.domain.model.SessionStatus
+import vn.delfi.xcloudwms.feature.deviceinfo.DeviceHardwareInfoScreen
+import vn.delfi.xcloudwms.feature.deviceinfo.DeviceHardwareInfoViewModel
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListScreen
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListViewModel
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssuePickScreen
@@ -155,6 +157,9 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenWarehouseSwitch = {
                     navController.navigate(AppDestination.WarehouseSwitch.route)
                 },
+                onOpenDeviceHardwareInfo = {
+                    navController.navigate(AppDestination.DeviceHardwareInfo.route)
+                },
                 onOpenScannerTest = {
                     navController.navigate(AppDestination.ScannerTest.route)
                 },
@@ -167,6 +172,19 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenGoodsIssue = {
                     navController.navigate(AppDestination.GoodsIssueList.route)
                 },
+            )
+        }
+
+        composable(AppDestination.DeviceHardwareInfo.route) {
+            val viewModel: DeviceHardwareInfoViewModel = viewModel(
+                factory = DeviceHardwareInfoViewModel.factory(
+                    repository = appContainer.deviceHardwareRepository,
+                    logger = appContainer.logger,
+                ),
+            )
+            DeviceHardwareInfoScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
             )
         }
 

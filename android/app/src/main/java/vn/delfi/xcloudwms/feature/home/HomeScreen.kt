@@ -23,6 +23,7 @@ import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
 fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenWarehouseSwitch: () -> Unit,
+    onOpenDeviceHardwareInfo: () -> Unit,
     onOpenScannerTest: () -> Unit,
     onOpenStockLookup: () -> Unit,
     onOpenPutaway: () -> Unit,
@@ -49,6 +50,23 @@ fun HomeScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        SectionCard(title = "Thiết bị đang dùng") {
+            Text(
+                text = "Mở màn thông tin phần cứng để xem dòng máy, phiên bản Android, IP, MAC, Bluetooth, IMEI, serial và các dữ liệu thiết bị mà app đọc được.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            OutlinedButton(
+                onClick = onOpenDeviceHardwareInfo,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp),
+            ) {
+                Text("Thông tin phần cứng")
+            }
         }
 
         SectionCard(title = "Ngữ cảnh hiện tại") {

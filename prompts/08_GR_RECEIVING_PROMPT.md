@@ -1,4 +1,4 @@
-# 08 — GR Receiving Prompt
+# H 08 — GR Receiving Prompt
 
 Triển khai module Goods Receipt Receiving cho Android native app.
 

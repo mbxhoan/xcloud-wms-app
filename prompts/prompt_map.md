@@ -18,6 +18,28 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 17:02 — Add PDA hardware diagnostics screen
+
+- Prompt summary: Ở trang chủ cần có phần `Thông tin phần cứng`; bấm vào sẽ mở màn hiển thị toàn bộ thông tin thiết bị mà app Android có thể đọc được như model, device name, số điện thoại nếu có, IMEI, serial, Android version, IP, MAC, Bluetooth và các trạng thái liên quan.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ thêm màn thông tin phần cứng native, route từ trang chủ và quyền đọc thiết bị liên quan; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/AndroidManifest.xml`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/{AppDestination,AppNavHost}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/device/DeviceHardwareRepository.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/deviceinfo/{DeviceHardwareInfoUiState,DeviceHardwareInfoViewModel,DeviceHardwareInfoScreen}.kt`
+  - `app/prompts/prompt_map.md`
+- Tests run:
+  - `cd app && git diff --check` ✅
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:assembleDevDebug` ✅
+- Commit message: `feat(app-device): add pda hardware diagnostics screen`
+- Notes/Risks:
+  - Màn mới chia dữ liệu theo nhóm: nhận dạng thiết bị, hệ điều hành, điện thoại/SIM, mạng/IP/MAC, Bluetooth, pin/bộ nhớ và thông tin app.
+  - App sẽ xin thêm quyền `READ_PHONE_STATE`, `READ_PHONE_NUMBERS`, `BLUETOOTH_CONNECT` khi cần để đọc sâu hơn các trường như số điện thoại, IMEI, serial phần cứng, tên/MAC Bluetooth.
+  - Trên Android 10+ nhiều định danh không reset như IMEI/serial/MAC thật có thể vẫn bị hệ điều hành chặn dù đã cấp quyền; màn hình sẽ hiện rõ trạng thái bị chặn thay vì giả dữ liệu.
+
 ## 2026-06-03 16:24 — Fix PM85 wedge capture and keyboard toggle
 
 - Prompt summary: Người dùng đã bật EmKit > ScanSettings trên PM85 nhưng mã chỉ vào ô giả lập nhập tay, không vào ô hiển thị kết quả quét; đồng thời cần bật/tắt bàn phím mềm khi chạm vào ô quét để vừa dùng cò quét PDA vừa xem lại mã đã nhận ngay trên máy.
