@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +34,23 @@ fun HomeScreen(
         title = "Trang chủ",
         subtitle = "Danh mục thao tác được lọc theo quyền hiện tại và kho đang làm việc.",
     ) {
+        SectionCard(title = "Tác vụ nhanh") {
+            Button(
+                onClick = onOpenScannerTest,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+            ) {
+                Text("Quét thử mã bằng PDA")
+            }
+
+            Text(
+                text = "Mở màn quét thử để bấm cò quét bên hông PDA và xem mã nhận được ngay.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         SectionCard(title = "Ngữ cảnh hiện tại") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 InfoPill(text = uiState.value.buildEnvironment)
@@ -75,6 +93,24 @@ fun HomeScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+
+                        shortcut.actionLabel?.let { actionLabel ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                Text(
+                                    text = actionLabel,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        } ?: Text(
+                            text = "Tính năng này chưa mở trực tiếp trong app Android ở build hiện tại.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -93,15 +129,6 @@ fun HomeScreen(
                 ) {
                     Text("Đổi kho làm việc")
                 }
-            }
-
-            Button(
-                onClick = onOpenScannerTest,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp),
-            ) {
-                Text("Kiểm tra máy quét")
             }
 
             OutlinedButton(

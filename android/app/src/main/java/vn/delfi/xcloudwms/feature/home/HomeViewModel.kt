@@ -50,6 +50,7 @@ class HomeViewModel(
                 note = "Xem và thao tác phiếu xuất được phân công.",
                 requiredPermissions = setOf("gi.scan"),
                 actionKey = ACTION_GOODS_ISSUE,
+                actionLabel = "Mở danh sách phiếu xuất",
             ),
             ModuleDefinition(
                 title = "Kiểm kê",
@@ -61,12 +62,14 @@ class HomeViewModel(
                 note = "Chuyển vị trí hàng hóa trong cùng kho làm việc.",
                 requiredPermissions = setOf("inventory.scan"),
                 actionKey = ACTION_PUTAWAY,
+                actionLabel = "Mở sắp xếp kho",
             ),
             ModuleDefinition(
                 title = "Tra cứu tồn",
                 note = "Tra cứu nhanh theo mã hàng, lô hoặc serial.",
                 requiredPermissions = setOf("inventory.scan"),
                 actionKey = ACTION_STOCK_LOOKUP,
+                actionLabel = "Mở tra cứu tồn",
             ),
             ModuleDefinition(
                 title = "Đơn vị chứa",
@@ -82,6 +85,7 @@ class HomeViewModel(
                 title = definition.title,
                 note = definition.note,
                 actionKey = definition.actionKey,
+                actionLabel = definition.actionLabel,
             )
         }
 
@@ -118,5 +122,6 @@ class HomeViewModel(
         val note: String,
         val requiredPermissions: Set<String>,
         val actionKey: String? = null,
+        val actionLabel: String? = null,
     )
 }

@@ -12,6 +12,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,19 +42,48 @@ fun ScannerTestScreen(
     }
 
     XcloudScaffold(
-        title = "Kiểm tra máy quét",
-        subtitle = "Dùng để thử luồng máy quét trước khi nối phần cứng thật.",
+        title = "Quét thử mã",
+        subtitle = "Bấm cò quét bên hông PDA để thử mã vạch hoặc QR ngay trên thiết bị.",
         onBack = onBack,
     ) {
-        SectionCard(title = "Trạng thái") {
+        SectionCard(title = "Sẵn sàng quét") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 InfoPill(text = if (state.isActive) "Đang bật" else "Đang tắt")
                 InfoPill(text = "Chế độ: ${state.selectedMode.label}")
             }
 
             Text(
+                text = "Bấm cò quét của PDA. Không cần chạm vào ô nhập trước khi quét.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            OutlinedTextField(
+                value = if (state.lastRawScan == "—") "" else state.lastRawScan,
+                onValueChange = {},
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
+                label = { Text("Mã quét") },
+                placeholder = { Text("Mã sẽ hiện ở đây sau khi quét") },
+                colors = TextFieldDefaults.colors(),
+            )
+
+            Text(
+                text = "Loại mã: ${state.lastParsedType}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = "Nguồn nhận: ${state.lastSourceLabel}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = "Symbology: ${state.lastSymbology}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 text = state.latestEvent,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
             )
 
             Row(
@@ -66,16 +96,16 @@ fun ScannerTestScreen(
                         .weight(1f)
                         .heightIn(min = 52.dp),
                 ) {
-                    Text("Bật máy quét")
+                    Text(if (state.isActive) "Bật lại máy quét" else "Bật máy quét")
                 }
 
                 OutlinedButton(
-                    onClick = viewModel::stopScanner,
+                    onClick = viewModel::testFeedback,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp),
                 ) {
-                    Text("Tắt máy quét")
+                    Text("Thử beep + rung")
                 }
             }
         }
@@ -83,11 +113,7 @@ fun ScannerTestScreen(
         SectionCard(title = "Bộ thu hiện tại") {
             InfoPill(text = state.currentAdapters)
             Text(
-                text = "Mã gần nhất: ${state.lastRawScan}",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "Loại nhận diện: ${state.lastParsedType}",
+                text = "Nếu PM85 đang bật Keyboard Event hoặc Intent Broadcast đúng cách, mã sẽ hiện ở phía trên ngay khi bóp cò quét.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -121,17 +147,6 @@ fun ScannerTestScreen(
             }
         }
 
-        SectionCard(title = "Phản hồi") {
-            OutlinedButton(
-                onClick = viewModel::testFeedback,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp),
-            ) {
-                Text("Thử âm báo + rung")
-            }
-        }
-
         SectionCard(title = "Giả lập mã quét") {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -154,7 +169,13 @@ fun ScannerTestScreen(
             }
         }
 
-        SectionCard(title = "Cấu hình broadcast (PDA)") {
+        SectionCard(title = "Thiết lập Point Mobile PM85") {
+            Text(
+                text = "Nếu quét không vào app, trên PDA hãy mở EmKit > ScanSettings > bật Scanner. Có thể dùng Keyboard Event để thử nhanh, hoặc dùng Intent Broadcast / Custom Intent để ổn định hơn.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -177,7 +198,7 @@ fun ScannerTestScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text("Action") },
-                supportingText = { Text("Ví dụ: com.xcloud.SCAN") },
+                supportingText = { Text("Gợi ý cho PM85: dùng cùng action này trong Custom Intent") },
             )
             OutlinedTextField(
                 value = state.broadcastDataKey,
@@ -185,6 +206,7 @@ fun ScannerTestScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text("Extra key chứa mã") },
+                supportingText = { Text("Gợi ý: data") },
             )
             OutlinedTextField(
                 value = state.broadcastSymbologyKey,
@@ -192,6 +214,7 @@ fun ScannerTestScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text("Extra key loại mã (tuỳ chọn)") },
+                supportingText = { Text("Gợi ý: symbology") },
             )
             Button(
                 onClick = viewModel::saveBroadcastConfig,
@@ -199,7 +222,7 @@ fun ScannerTestScreen(
                     .fillMaxWidth()
                     .heightIn(min = 52.dp),
             ) {
-                Text("Lưu cấu hình")
+                Text("Lưu cấu hình broadcast")
             }
         }
 

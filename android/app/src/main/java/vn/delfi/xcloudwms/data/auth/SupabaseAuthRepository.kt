@@ -218,7 +218,7 @@ class SupabaseAuthRepository(
 
         val selectedWarehouseId = appPreferences.getSelectedWarehouseId(currentUser.user.id)
         val currentWarehouse = warehouses.firstOrNull { it.id == selectedWarehouseId }
-            ?: warehouses.singleOrNull()
+            ?: warehouses.firstOrNull()
 
         if (currentWarehouse != null) {
             appPreferences.saveSelectedWarehouseId(currentUser.user.id, currentWarehouse.id)

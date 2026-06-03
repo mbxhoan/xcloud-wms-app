@@ -11,6 +11,8 @@ data class ScannerTestUiState(
     val currentAdapters: String = "Chưa bật",
     val lastRawScan: String = "—",
     val lastParsedType: String = "—",
+    val lastSourceLabel: String = "—",
+    val lastSymbology: String = "—",
     val continuousSerial: Boolean = false,
     val broadcastEnabled: Boolean = false,
     val broadcastAction: String = "",

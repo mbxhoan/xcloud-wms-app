@@ -18,6 +18,26 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 15:45 — Fix PDA home flow and add scan demo screen
+
+- Prompt summary: App Android đã đăng nhập thành công nhưng cần vào thẳng giao diện chính không phải chọn kho, màn chính trên PDA đang giống bị cứng vì không scroll/click được gì hữu ích, và cần có màn quét thử QR/mã vạch để dùng nút cứng của PDA quét như app mẫu.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ chỉnh flow native app, không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/auth/SupabaseAuthRepository.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/XcloudScaffold.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/{HomeUiState,HomeViewModel,HomeScreen}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/{ScannerTestUiState,ScannerTestViewModel,ScannerTestScreen}.kt`
+  - `app/prompts/prompt_map.md`
+- Tests run:
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:assembleDevDebug` ✅
+  - `cd app && git diff --check` ✅
+- Commit message: `fix(app-home): streamline pda entry and scan demo flow`
+- Notes/Risks:
+  - Native app giờ sẽ tự lấy kho đầu tiên được phân quyền nếu chưa có kho đã lưu cục bộ; user vẫn có thể đổi kho lại từ màn chính.
+  - PM85 không bắt buộc phải có SDK để test scan bước đầu; có thể chạy bằng Keyboard Event hoặc Intent Broadcast trong EmKit/ScanSettings.
+  - Nếu PDA không phát được dữ liệu vào app sau khi bấm cò, bước tiếp theo là cấu hình đúng `Scanner On`, `Wedge`, `Terminator`, hoặc `Custom Intent` trên thiết bị.
+
 ## 2026-06-03 15:10 — Dev auto-login shortcut for PDA test
 
 - Prompt summary: Tạm bỏ qua phần cấu hình thông tin kết nối trên app native, vào thẳng giao diện login và dùng sẵn tài khoản test `scan / Xcloudwms@123` để test nhanh trên PDA.

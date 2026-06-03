@@ -35,6 +35,14 @@ class ScannerTestViewModel(
                 mutableUiState.update {
                     it.copy(
                         latestEvent = label,
+                        lastSourceLabel = when (event) {
+                            is ScanEvent.Success -> event.source.label
+                            is ScanEvent.Error -> event.source.label
+                        },
+                        lastSymbology = when (event) {
+                            is ScanEvent.Success -> event.symbology ?: "—"
+                            is ScanEvent.Error -> "—"
+                        },
                         eventHistory = (listOf(label) + it.eventHistory).take(MAX_HISTORY),
                     )
                 }
@@ -124,15 +132,18 @@ class ScannerTestViewModel(
         val config = scannerManager.state.value.broadcastConfig
         return ScannerTestUiState(
             broadcastEnabled = config.enabled,
-            broadcastAction = config.action,
-            broadcastDataKey = config.dataExtraKey,
-            broadcastSymbologyKey = config.symbologyExtraKey,
+            broadcastAction = config.action.ifBlank { DEFAULT_BROADCAST_ACTION },
+            broadcastDataKey = config.dataExtraKey.ifBlank { DEFAULT_BROADCAST_DATA_KEY },
+            broadcastSymbologyKey = config.symbologyExtraKey.ifBlank { DEFAULT_BROADCAST_SYMBOLOGY_KEY },
         )
     }
 
     companion object {
         private const val TAG = "ScannerTestViewModel"
         private const val MAX_HISTORY = 8
+        private const val DEFAULT_BROADCAST_ACTION = "vn.delfi.xcloudwms.SCAN"
+        private const val DEFAULT_BROADCAST_DATA_KEY = "data"
+        private const val DEFAULT_BROADCAST_SYMBOLOGY_KEY = "symbology"
 
         fun factory(
             scannerManager: ScannerManager,

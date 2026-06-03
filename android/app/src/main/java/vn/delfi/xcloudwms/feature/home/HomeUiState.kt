@@ -4,6 +4,7 @@ data class ModuleShortcut(
     val title: String,
     val note: String,
     val actionKey: String? = null,
+    val actionLabel: String? = null,
 )
 
 data class HomeUiState(
