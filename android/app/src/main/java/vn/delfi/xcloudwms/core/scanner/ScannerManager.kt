@@ -40,6 +40,9 @@ interface ScannerManager {
     /** Nhập tay (debug) — đi qua cùng pipeline như quét thật. */
     fun submitManualScan(raw: String)
 
+    /** Nhận chuỗi do ô nhập wedge trên PDA bắt được rồi đẩy qua pipeline quét thật. */
+    fun submitCapturedScan(raw: String)
+
     /**
      * Chuyển tiếp key event từ Activity cho keyboard wedge adapter.
      * @return true nếu adapter đã "nuốt" event (không cho dispatch tiếp), false nếu để hệ thống xử lý.

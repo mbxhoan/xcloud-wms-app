@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.launch
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.core.scanner.BroadcastScannerConfig
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
+import vn.delfi.xcloudwms.core.scanner.ScanSource
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
 
@@ -22,6 +25,7 @@ class ScannerTestViewModel(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(initialState())
     val uiState: StateFlow<ScannerTestUiState> = mutableUiState.asStateFlow()
+    private var captureSubmitJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -32,9 +36,17 @@ class ScannerTestViewModel(
 
                     is ScanEvent.Error -> "Lỗi • ${event.message}"
                 }
+                val isKeyboardWedgeEvent = when (event) {
+                    is ScanEvent.Success -> event.source == ScanSource.KEYBOARD_WEDGE
+                    is ScanEvent.Error -> event.source == ScanSource.KEYBOARD_WEDGE
+                }
+                if (isKeyboardWedgeEvent) {
+                    captureSubmitJob?.cancel()
+                }
                 mutableUiState.update {
                     it.copy(
                         latestEvent = label,
+                        captureInput = if (isKeyboardWedgeEvent) "" else it.captureInput,
                         lastSourceLabel = when (event) {
                             is ScanEvent.Success -> event.source.label
                             is ScanEvent.Error -> event.source.label
@@ -85,6 +97,31 @@ class ScannerTestViewModel(
         mutableUiState.update { it.copy(manualCode = value) }
     }
 
+    fun updateCaptureInput(value: String) {
+        mutableUiState.update { it.copy(captureInput = value) }
+        captureSubmitJob?.cancel()
+        if (uiState.value.softKeyboardEnabled) {
+            return
+        }
+        if (value.isBlank()) {
+            return
+        }
+        captureSubmitJob = viewModelScope.launch {
+            delay(CAPTURE_SETTLE_DELAY_MS)
+            submitCaptureInput()
+        }
+    }
+
+    fun submitCaptureInput() {
+        val captured = uiState.value.captureInput.trim()
+        if (captured.isBlank()) {
+            return
+        }
+        logger.debug(TAG, "Submitting captured wedge text")
+        scannerManager.submitCapturedScan(captured)
+        mutableUiState.update { it.copy(captureInput = "") }
+    }
+
     fun submitManualScan() {
         logger.debug(TAG, "Submitting manual scan mode=${uiState.value.selectedMode.name}")
         scannerManager.submitManualScan(uiState.value.manualCode)
@@ -97,6 +134,11 @@ class ScannerTestViewModel(
 
     fun testFeedback() {
         scannerManager.testFeedback()
+    }
+
+    fun toggleSoftKeyboard(enabled: Boolean) {
+        captureSubmitJob?.cancel()
+        mutableUiState.update { it.copy(softKeyboardEnabled = enabled) }
     }
 
     fun updateBroadcastEnabled(enabled: Boolean) {
@@ -141,6 +183,7 @@ class ScannerTestViewModel(
     companion object {
         private const val TAG = "ScannerTestViewModel"
         private const val MAX_HISTORY = 8
+        private const val CAPTURE_SETTLE_DELAY_MS = 180L
         private const val DEFAULT_BROADCAST_ACTION = "vn.delfi.xcloudwms.SCAN"
         private const val DEFAULT_BROADCAST_DATA_KEY = "data"
         private const val DEFAULT_BROADCAST_SYMBOLOGY_KEY = "symbology"

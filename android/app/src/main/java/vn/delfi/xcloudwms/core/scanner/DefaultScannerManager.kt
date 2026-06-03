@@ -108,6 +108,18 @@ class DefaultScannerManager(
         manualAdapter.submit(raw)
     }
 
+    override fun submitCapturedScan(raw: String) {
+        if (!active) {
+            emitError("Máy quét chưa được kích hoạt.", ScanSource.KEYBOARD_WEDGE)
+            return
+        }
+        if (raw.trim().isBlank()) {
+            emitError("Mã quét đang trống.", ScanSource.KEYBOARD_WEDGE)
+            return
+        }
+        processRaw(RawScan(raw = raw, source = ScanSource.KEYBOARD_WEDGE))
+    }
+
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (!active) {
             return false

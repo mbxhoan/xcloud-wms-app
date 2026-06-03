@@ -18,6 +18,24 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-03 16:24 — Fix PM85 wedge capture and keyboard toggle
+
+- Prompt summary: Người dùng đã bật EmKit > ScanSettings trên PM85 nhưng mã chỉ vào ô giả lập nhập tay, không vào ô hiển thị kết quả quét; đồng thời cần bật/tắt bàn phím mềm khi chạm vào ô quét để vừa dùng cò quét PDA vừa xem lại mã đã nhận ngay trên máy.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ chỉnh scanner test flow native và adapter pipeline cho PM85; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/scanner/{ScannerManager,DefaultScannerManager}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/scannertest/{ScannerTestUiState,ScannerTestViewModel,ScannerTestScreen}.kt`
+  - `app/prompts/prompt_map.md`
+- Tests run:
+  - `cd app && git diff --check` ✅
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:assembleDevDebug` ✅
+- Commit message: `fix(app-scan): support pda wedge capture and keyboard toggle`
+- Notes/Risks:
+  - Màn `Quét thử mã` giờ có một ô nhận quét PDA riêng, giữ focus sẵn và mặc định không bật bàn phím mềm; ô `Kết quả quét` chỉ còn vai trò hiển thị mã sau khi pipeline xử lý xong.
+  - Nếu PM85 bắn theo kiểu key event, app sẽ huỷ submit tạm từ ô nhận quét để tránh nhận mã dở hoặc nhận trùng; nếu PM85 bắn thẳng text vào ô focus, app sẽ tự submit sau khi chuỗi ổn định hoặc khi người dùng bấm nút nhận mã trong ô.
+  - Với PM85 nên ưu tiên `Keyboard Event` hoặc `Wedge` để test nhanh; nếu firmware vẫn cư xử như nhập text thuần vào ô focus thì màn này đã hỗ trợ, còn nếu muốn ổn định lâu dài hơn nên cân nhắc `Intent Broadcast` / `Custom Intent`.
+
 ## 2026-06-03 15:45 — Fix PDA home flow and add scan demo screen
 
 - Prompt summary: App Android đã đăng nhập thành công nhưng cần vào thẳng giao diện chính không phải chọn kho, màn chính trên PDA đang giống bị cứng vì không scroll/click được gì hữu ích, và cần có màn quét thử QR/mã vạch để dùng nút cứng của PDA quét như app mẫu.

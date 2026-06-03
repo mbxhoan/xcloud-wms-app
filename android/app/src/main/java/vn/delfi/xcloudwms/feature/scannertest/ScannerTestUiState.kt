@@ -13,6 +13,8 @@ data class ScannerTestUiState(
     val lastParsedType: String = "—",
     val lastSourceLabel: String = "—",
     val lastSymbology: String = "—",
+    val captureInput: String = "",
+    val softKeyboardEnabled: Boolean = false,
     val continuousSerial: Boolean = false,
     val broadcastEnabled: Boolean = false,
     val broadcastAction: String = "",
