@@ -22,6 +22,21 @@ class AppPreferences(
     val broadcastScannerConfig: StateFlow<BroadcastScannerConfig> =
         mutableBroadcastScannerConfig.asStateFlow()
 
+    private val mutableBlockSoftKeyboard = MutableStateFlow(loadBlockSoftKeyboard())
+
+    /**
+     * Bật/tắt việc chặn bàn phím ảo của thiết bị trong toàn app. Mặc định BẬT để tối ưu thao tác
+     * trên PDA/thiết bị có bàn phím cứng; tắt khi muốn nhập tay bằng bàn phím ảo như bình thường.
+     */
+    val blockSoftKeyboard: StateFlow<Boolean> = mutableBlockSoftKeyboard.asStateFlow()
+
+    fun setBlockSoftKeyboard(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_BLOCK_SOFT_KEYBOARD, enabled)
+            .apply()
+        mutableBlockSoftKeyboard.value = enabled
+    }
+
     fun currentConnectionConfig(): ConnectionConfig? = mutableConnectionConfig.value
 
     fun currentBroadcastScannerConfig(): BroadcastScannerConfig = mutableBroadcastScannerConfig.value
@@ -99,6 +114,10 @@ class AppPreferences(
         return "$KEY_SELECTED_WAREHOUSE_PREFIX${userId.trim()}"
     }
 
+    private fun loadBlockSoftKeyboard(): Boolean {
+        return sharedPreferences.getBoolean(KEY_BLOCK_SOFT_KEYBOARD, true)
+    }
+
     private fun loadBroadcastScannerConfig(): BroadcastScannerConfig {
         return BroadcastScannerConfig(
             action = sharedPreferences.getString(KEY_BROADCAST_ACTION, "").orEmpty(),
@@ -117,5 +136,6 @@ class AppPreferences(
         const val KEY_BROADCAST_DATA_KEY = "broadcast_scanner_data_key"
         const val KEY_BROADCAST_SYMBOLOGY_KEY = "broadcast_scanner_symbology_key"
         const val KEY_BROADCAST_ENABLED = "broadcast_scanner_enabled"
+        const val KEY_BLOCK_SOFT_KEYBOARD = "block_soft_keyboard"
     }
 }

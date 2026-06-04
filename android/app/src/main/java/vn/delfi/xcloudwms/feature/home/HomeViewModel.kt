@@ -10,16 +10,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.session.SessionRepository
 import vn.delfi.xcloudwms.domain.model.DeviceLicenseStatus
 
 class HomeViewModel(
     private val sessionRepository: SessionRepository,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
+    val blockSoftKeyboard: StateFlow<Boolean> = appPreferences.blockSoftKeyboard
+
+    fun setBlockSoftKeyboard(enabled: Boolean) {
+        appPreferences.setBlockSoftKeyboard(enabled)
+    }
+
     val uiState: StateFlow<HomeUiState> = sessionRepository.session.map { session ->
         HomeUiState(
             isAuthenticated = session.isAuthenticated,
             operatorName = session.displayName ?: "Chưa đăng nhập",
+            roleLabels = session.roles,
             tenantLabel = session.tenant?.label ?: "Chưa xác định",
             warehouseLabel = session.currentWarehouse?.label ?: "Chưa chọn",
             buildEnvironment = session.buildEnvironment.uppercase(),
@@ -123,10 +132,12 @@ class HomeViewModel(
 
         fun factory(
             sessionRepository: SessionRepository,
+            appPreferences: AppPreferences,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 HomeViewModel(
                     sessionRepository = sessionRepository,
+                    appPreferences = appPreferences,
                 )
             }
         }

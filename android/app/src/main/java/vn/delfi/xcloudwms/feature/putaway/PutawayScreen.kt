@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
+import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.data.putaway.PutawayLineValidator
 import vn.delfi.xcloudwms.domain.model.PaDraftLine
 import vn.delfi.xcloudwms.domain.model.PaSessionStatus
@@ -229,7 +230,12 @@ private fun StepperCard(state: PutawayUiState, viewModel: PutawayViewModel) {
             OutlinedTextField(
                 value = state.scannedCode,
                 onValueChange = viewModel::updateScannedCode,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alwaysFocusedScanInput(
+                        enabled = state.canEditSession,
+                        keepFocused = false,
+                    ),
                 singleLine = true,
                 enabled = state.canEditSession,
                 label = { Text(codeFieldLabel(state)) },

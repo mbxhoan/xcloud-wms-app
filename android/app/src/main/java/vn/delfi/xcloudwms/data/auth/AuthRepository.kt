@@ -13,6 +13,7 @@ data class AuthContext(
     val currentWarehouse: WarehouseSummary?,
     val allowedWarehouses: List<WarehouseSummary>,
     val permissions: Set<String>,
+    val roles: List<String> = emptyList(),
     val connectionLabel: String,
 )
 

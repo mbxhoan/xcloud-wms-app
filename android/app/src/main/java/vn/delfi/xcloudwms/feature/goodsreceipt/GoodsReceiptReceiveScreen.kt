@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
+import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.GrLine
 import vn.delfi.xcloudwms.domain.model.GrTrackingType
 
@@ -141,7 +142,7 @@ fun GoodsReceiptReceiveScreen(
                 if (state.isOffline) {
                     item { GrOfflineBanner() }
                 }
-                state.banner?.let { banner ->
+                state.banner?.takeIf { state.activeLine == null }?.let { banner ->
                     item { GrBannerCard(banner, onDismiss = viewModel::dismissBanner) }
                 }
                 item { HeaderSummaryCard(state) }
@@ -215,6 +216,7 @@ private fun HeaderSummaryCard(state: GoodsReceiptReceiveUiState) {
 @Composable
 private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsReceiptReceiveViewModel) {
     val line = state.activeLine
+    val showLocationError = state.requiresLocationSelection && state.scannedCode.isNotBlank()
     SectionCard(title = "Đang nhận") {
         if (line == null) {
             Text("Chọn một dòng bên dưới để bắt đầu nhận hàng.")
@@ -240,6 +242,10 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
             }
         }
 
+        state.banner?.let { banner ->
+            GrBannerCard(banner = banner, onDismiss = viewModel::dismissBanner)
+        }
+
         if (!state.canScan) {
             Text(
                 text = "Không thể thao tác khi phiếu ở trạng thái ${state.header?.status?.label ?: "—"}.",
@@ -249,7 +255,7 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
             return@SectionCard
         }
 
-        LocationPicker(state = state, viewModel = viewModel)
+        LocationPicker(state = state, viewModel = viewModel, showError = showLocationError)
 
         if (state.showQtyInput) {
             OutlinedTextField(
@@ -308,14 +314,16 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
         OutlinedTextField(
             value = state.scannedCode,
             onValueChange = viewModel::updateScannedCode,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .alwaysFocusedScanInput(keepFocused = false),
             singleLine = true,
             label = { Text("Mã quét (serial / lô / sản phẩm)") },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = viewModel::submitScannedCode,
-                enabled = !state.isBusy && state.scannedCode.isNotBlank(),
+                enabled = state.canSubmitScannedCode,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 52.dp),
@@ -323,13 +331,13 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
                 if (state.processingLineId == line.id) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Nhận theo mã quét")
+                    Text(state.scanButtonLabel)
                 }
             }
             if (line.trackingType == GrTrackingType.NONE) {
                 OutlinedButton(
                     onClick = viewModel::receiveActiveNoneQuantity,
-                    enabled = !state.isBusy,
+                    enabled = state.canReceiveNoneQuantity,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 52.dp),
@@ -340,7 +348,11 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
 }
 
 @Composable
-private fun LocationPicker(state: GoodsReceiptReceiveUiState, viewModel: GoodsReceiptReceiveViewModel) {
+private fun LocationPicker(
+    state: GoodsReceiptReceiveUiState,
+    viewModel: GoodsReceiptReceiveViewModel,
+    showError: Boolean,
+) {
     var expanded by remember { mutableStateOf(false) }
     val filtered = state.filteredLocations()
     Box {
@@ -353,6 +365,7 @@ private fun LocationPicker(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = { Text("Vị trí nhập (bắt buộc)") },
+            isError = showError,
             trailingIcon = {
                 TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Đóng" else "Chọn") }
             },
@@ -361,7 +374,14 @@ private fun LocationPicker(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
                 if (selected != null) {
                     Text("Đã chọn: ${selected.label}")
                 } else {
-                    Text("Chọn vị trí trong kho hiện tại trước khi nhận.")
+                    Text(
+                        text = if (showError) {
+                            "Cần chọn vị trí nhập trước khi nhận theo mã quét."
+                        } else {
+                            "Chọn vị trí trong kho hiện tại trước khi nhận."
+                        },
+                        color = if (showError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
         )

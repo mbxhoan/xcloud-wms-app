@@ -27,6 +27,7 @@ import java.util.Locale
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
+import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.StockMatch
 import vn.delfi.xcloudwms.domain.model.StockRow
 import vn.delfi.xcloudwms.domain.model.StockSummary
@@ -59,7 +60,9 @@ fun StockLookupScreen(
             OutlinedTextField(
                 value = state.manualCode,
                 onValueChange = viewModel::updateManualCode,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alwaysFocusedScanInput(),
                 singleLine = true,
                 label = { Text("Mã hàng / lô / serial / vị trí") },
             )

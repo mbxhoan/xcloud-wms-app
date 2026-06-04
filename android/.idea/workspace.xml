@@ -5,15 +5,32 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="815e146f-2593-49e1-b611-39652a3498f7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle.kts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/ScanFieldFocus.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/test/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveUiStateTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.kotlin/sessions/kotlin-compiler-7320498536058461677.salive" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/XcloudWmsApp.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/XcloudWmsApp.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppDestination.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppDestination.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/storage/AppPreferences.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/storage/AppPreferences.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/XcloudScaffold.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/XcloudScaffold.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/auth/AuthRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/auth/AuthRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/auth/SupabaseAuthRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/auth/SupabaseAuthRepository.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/domain/model/UserSession.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/domain/model/UserSession.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsissue/GoodsIssueListScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsissue/GoodsIssueListScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsissue/GoodsIssuePickScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsissue/GoodsIssuePickScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptListScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptListScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveUiState.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeUiState.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/inventorycount/InventoryCountListScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/inventorycount/InventoryCountListScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/inventorycount/InventoryCountScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/inventorycount/InventoryCountScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/putaway/PutawayScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/putaway/PutawayScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupScreen.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../prompts/prompt_map.md" beforeDir="false" afterPath="$PROJECT_DIR$/../prompts/prompt_map.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -24,7 +41,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=25268A0109]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />

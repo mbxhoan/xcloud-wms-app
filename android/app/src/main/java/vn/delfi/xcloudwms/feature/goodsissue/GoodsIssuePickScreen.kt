@@ -42,6 +42,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
+import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.GiLine
 import vn.delfi.xcloudwms.domain.model.GiTrackingType
 
@@ -274,7 +275,9 @@ private fun ActiveLineCard(state: GoodsIssuePickUiState, viewModel: GoodsIssuePi
         OutlinedTextField(
             value = state.scannedCode,
             onValueChange = viewModel::updateScannedCode,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .alwaysFocusedScanInput(keepFocused = false),
             singleLine = true,
             label = { Text("Mã quét (serial / lot / sản phẩm)") },
         )

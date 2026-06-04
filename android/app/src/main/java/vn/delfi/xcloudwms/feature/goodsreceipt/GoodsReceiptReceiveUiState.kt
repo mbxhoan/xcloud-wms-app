@@ -58,6 +58,15 @@ data class GoodsReceiptReceiveUiState(
     val canScan: Boolean
         get() = header?.status?.isScannable == true && !isStarting
 
+    val requiresLocationSelection: Boolean
+        get() = canScan && activeLine != null && selectedLocationId == null
+
+    val canSubmitScannedCode: Boolean
+        get() = !isBusy && canScan && activeLine != null && selectedLocationId != null && scannedCode.isNotBlank()
+
+    val scanButtonLabel: String
+        get() = if (requiresLocationSelection) "Chọn vị trí nhập trước" else "Nhận theo mã quét"
+
     val canSubmit: Boolean
         get() = header?.status?.canSubmit == true && lines.isNotEmpty() && !isSubmitting && !isCompleting
 
@@ -76,6 +85,9 @@ data class GoodsReceiptReceiveUiState(
 
     val isBusy: Boolean
         get() = isStarting || isSubmitting || isCompleting || processingLineId != null
+
+    val canReceiveNoneQuantity: Boolean
+        get() = !isBusy && canScan && activeLine?.trackingType == GrTrackingType.NONE && selectedLocationId != null
 
     fun filteredLocations(): List<GrLocation> {
         val q = locationQuery.trim().lowercase()

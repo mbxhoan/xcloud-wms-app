@@ -109,7 +109,11 @@ class GoodsReceiptReceiveViewModel(
 
     fun submitScannedCode() {
         val code = uiState.value.scannedCode
-        if (code.isNotBlank()) onScan(code)
+        if (code.isBlank()) {
+            setBanner(GrBannerTone.WARNING, "Quét hoặc nhập mã trước khi nhận.")
+            return
+        }
+        scannerManager.submitManualScan(code)
     }
 
     /** Nút "Nhận SL" cho dòng NONE (không cần quét). */

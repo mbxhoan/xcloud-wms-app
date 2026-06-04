@@ -256,6 +256,7 @@ class DefaultSessionRepository(
             currentWarehouse = currentWarehouse,
             allowedWarehouses = allowedWarehouses,
             permissions = permissions,
+            roles = roles,
             deviceLicense = deviceLicense,
             buildEnvironment = appConfig.buildEnvironment,
             connectionConfigured = true,

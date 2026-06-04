@@ -54,6 +54,7 @@ interface AppContainer {
     val deviceLicenseRepository: DeviceLicenseRepository
     val connectivityObserver: ConnectivityObserver
     val putawayOfflineCache: PaOfflineCache
+    val appPreferences: AppPreferences
     val deviceId: String
 }
 
@@ -72,7 +73,7 @@ class DefaultAppContainer(
         logger = logger,
     )
 
-    private val appPreferences = AppPreferences(
+    override val appPreferences: AppPreferences = AppPreferences(
         context = application,
         defaultConnectionConfig = appConfig.defaultConnectionConfig,
     )

@@ -37,6 +37,7 @@ data class UserSession(
     val currentWarehouse: WarehouseSummary? = null,
     val allowedWarehouses: List<WarehouseSummary> = emptyList(),
     val permissions: Set<String> = emptySet(),
+    val roles: List<String> = emptyList(),
     val deviceLicense: DeviceLicenseState? = null,
     val buildEnvironment: String = "dev",
     val connectionConfigured: Boolean = false,

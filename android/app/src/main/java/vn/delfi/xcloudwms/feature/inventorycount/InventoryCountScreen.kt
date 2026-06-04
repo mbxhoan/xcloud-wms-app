@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
+import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.IcLine
 import vn.delfi.xcloudwms.domain.model.IcTrackingType
 
@@ -311,7 +312,9 @@ private fun ActiveLineCard(state: InventoryCountUiState, viewModel: InventoryCou
         OutlinedTextField(
             value = state.scannedCode,
             onValueChange = viewModel::updateScannedCode,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .alwaysFocusedScanInput(keepFocused = false),
             singleLine = true,
             label = { Text("Mã quét (serial / lô / sản phẩm)") },
         )

@@ -241,13 +241,11 @@ fun AppNavHost(appContainer: AppContainer) {
             val viewModel: HomeViewModel = viewModel(
                 factory = HomeViewModel.factory(
                     sessionRepository = appContainer.sessionRepository,
+                    appPreferences = appContainer.appPreferences,
                 ),
             )
             HomeScreen(
                 viewModel = viewModel,
-                onOpenWarehouseSwitch = {
-                    navController.navigate(AppDestination.WarehouseSwitch.route)
-                },
                 onOpenDeviceLicense = {
                     navController.navigate(AppDestination.DeviceLicense.route)
                 },

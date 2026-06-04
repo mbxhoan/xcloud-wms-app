@@ -242,9 +242,50 @@ class SupabaseAuthRepository(
                 currentWarehouse = currentWarehouse,
                 allowedWarehouses = warehouses,
                 permissions = permissions,
+                roles = resolveRoleLabels(
+                    connectionConfig = connectionConfig,
+                    accessToken = currentUser.session.accessToken,
+                    user = currentUser.user,
+                    directoryRecords = directoryRecords,
+                ),
                 connectionLabel = connectionConfig.hostLabel,
             ),
         )
+    }
+
+    private suspend fun resolveRoleLabels(
+        connectionConfig: ConnectionConfig,
+        accessToken: String,
+        user: AuthUserData,
+        directoryRecords: List<Map<String, Any?>>,
+    ): List<String> {
+        val principalIds = linkedSetOf(user.id).apply {
+            addAll(extractPrincipalIds(directoryRecords))
+        }.toList()
+
+        val userRoles = fetchTableRows(
+            connectionConfig = connectionConfig,
+            accessToken = accessToken,
+            table = "user_roles",
+            filters = mapOf("user_id" to inFilter(principalIds)),
+        )
+        val roleIds = extractRoleIds(userRoles)
+        if (roleIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val roleRows = fetchTableRows(
+            connectionConfig = connectionConfig,
+            accessToken = accessToken,
+            table = "roles",
+            filters = mapOf("id" to inFilter(roleIds)),
+        )
+
+        return roleRows.mapNotNull { row ->
+            (asString(row["name"]) ?: asString(row["code"]))
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+        }.distinct()
     }
 
     private suspend fun resolveEmailByUsername(

@@ -25,12 +25,12 @@ import androidx.compose.material.icons.filled.Outbox
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -49,7 +49,6 @@ import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onOpenWarehouseSwitch: () -> Unit,
     onOpenDeviceLicense: () -> Unit,
     onOpenDeviceHardwareInfo: () -> Unit,
     onOpenScannerTest: () -> Unit,
@@ -60,6 +59,7 @@ fun HomeScreen(
     onOpenInventoryCount: () -> Unit,
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val blockSoftKeyboard = viewModel.blockSoftKeyboard.collectAsStateWithLifecycle().value
 
     val onModuleClick: (String?) -> Unit = { actionKey ->
         when (actionKey) {
@@ -73,9 +73,11 @@ fun HomeScreen(
     }
 
     XcloudScaffold(title = "Trang chủ") {
-        GreetingCard(operatorName = state.operatorName, tenantLabel = state.tenantLabel)
-
-        InfoPill(text = "Kho: ${state.warehouseLabel}")
+        GreetingCard(
+            operatorName = state.operatorName,
+            tenantLabel = state.tenantLabel,
+            roleLabels = state.roleLabels,
+        )
 
         ModuleGridSection(shortcuts = state.moduleShortcuts, onModuleClick = onModuleClick)
 
@@ -124,22 +126,35 @@ fun HomeScreen(
             }
         }
 
+        SectionCard(title = "Tùy chỉnh") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Ẩn bàn phím ảo",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Chặn bàn phím ảo của thiết bị trong app. Phù hợp PDA/máy có bàn phím cứng. Tắt nếu muốn nhập tay bằng bàn phím ảo.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = blockSoftKeyboard,
+                    onCheckedChange = viewModel::setBlockSoftKeyboard,
+                )
+            }
+        }
+
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (state.canSwitchWarehouse) {
-                OutlinedButton(
-                    onClick = onOpenWarehouseSwitch,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp),
-                ) {
-                    Icon(Icons.Filled.Warehouse, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Text("  Đổi kho làm việc")
-                }
-            }
-
             OutlinedButton(
                 onClick = viewModel::logout,
                 modifier = Modifier
@@ -154,7 +169,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun GreetingCard(operatorName: String, tenantLabel: String) {
+private fun GreetingCard(operatorName: String, tenantLabel: String, roleLabels: List<String>) {
     val gradient = Brush.linearGradient(
         colors = listOf(Color(0xFF6F9C7F), Color(0xFFA9C6A8)),
     )
@@ -195,6 +210,14 @@ private fun GreetingCard(operatorName: String, tenantLabel: String) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.85f),
                 )
+                if (roleLabels.isNotEmpty()) {
+                    Text(
+                        text = "Vai trò: ${roleLabels.joinToString(", ")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.92f),
+                    )
+                }
             }
             Icon(
                 imageVector = Icons.Filled.AccountCircle,

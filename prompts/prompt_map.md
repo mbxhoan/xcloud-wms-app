@@ -18,6 +18,24 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 09:03 — Fix silent GR scan submit on native PDA
+
+- Prompt summary: Khi nhận hàng theo sản phẩm/serial trên màn Goods Receipt native, bấm `Nhận theo mã quét` không thấy submit hay tín hiệu gì, không có thông báo hiển thị rõ trên PDA.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ sửa UX/validation/submit flow cho màn `Goods Receipt Receive`; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/{GoodsReceiptReceiveUiState,GoodsReceiptReceiveViewModel,GoodsReceiptReceiveScreen}.kt`
+  - `app/android/app/src/test/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveUiStateTest.kt`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `git -C /Users/leviackerman/Codes/xcloud-wms-workspace/app diff --check` ✅
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug` ✅
+- Commit message: `fix(app-gr): surface scan receive feedback on native pda`
+- Notes/Risks:
+  - Nút `Nhận theo mã quét` trước đó gọi thẳng `onScan(...)`, bỏ qua scanner pipeline chuẩn hoá/feedback; giờ đã đi qua `scannerManager.submitManualScan(...)` để thống nhất với quét PDA thật.
+  - Banner lỗi/thành công của GR trước đó nằm ở đầu `LazyColumn`, dễ khuất khỏi vùng nhìn thấy khi thao tác ở card nhận hàng; giờ banner được đưa vào ngay card `Đang nhận` khi có active line.
+  - Khi chưa chọn `Vị trí nhập`, nút scan và nút `Nhận SL` sẽ bị khóa và field vị trí hiện lỗi/hướng dẫn rõ ràng, tránh trạng thái bấm mà tưởng app đứng.
+
 ## 2026-06-04 08:44 — Device registration and scanner license verification
 
 - Prompt summary: Triển khai device registration/license check cho native scanner app: tạo install id, thu thập device info an toàn, verify/register qua backend contract hiện có, thêm màn trạng thái thiết bị, chặn thao tác khi thiết bị pending/blocked/revoked/expired, heartbeat khi app resume và theo chu kỳ; logout chỉ xóa local session, không xóa đăng ký thiết bị.

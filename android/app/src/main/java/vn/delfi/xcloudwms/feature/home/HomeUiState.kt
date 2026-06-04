@@ -10,6 +10,7 @@ data class ModuleShortcut(
 data class HomeUiState(
     val isAuthenticated: Boolean = false,
     val operatorName: String = "",
+    val roleLabels: List<String> = emptyList(),
     val tenantLabel: String = "Chưa xác định",
     val warehouseLabel: String = "Chưa chọn",
     val buildEnvironment: String = "",
