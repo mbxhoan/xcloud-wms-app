@@ -74,6 +74,7 @@ interface ScannerManager {
 
 ## UX bắt buộc
 
+- **Báo lỗi:** parity scanner PWA (`../CLAUDE.md` §1.2) — không hiển thị raw exception / mã `SCREAMING_SNAKE_CASE` từ API; dùng string resource theo locale (`vi`/`en`), mô tả nghiệp vụ và hướng xử lý. Audit copy lỗi từ scanner PWA (`mapLpnError`, `messages.ts`) khi implement module tương ứng.
 - Mỗi màn hình thao tác phải có trạng thái: idle/loading/success/error/offline.
 - Mỗi nút submit/complete/confirm phải disabled khi đang loading.
 - Scan thành công: beep + vibrate + highlight xanh.

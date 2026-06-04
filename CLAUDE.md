@@ -18,6 +18,7 @@ Mục tiêu của folder `app/`: xây dựng native Android app cho Xcloud WMS, 
 - Không tự quyết business rule stock ở client.
 - Mọi commit kho phải qua backend transaction.
 - Tối ưu UX cho kho: nhanh, rõ, ít tap, nhiều feedback.
+- Lỗi user-facing: parity scanner PWA — message có nghĩa, đúng locale, không lộ machine code từ API (`../CLAUDE.md` §1.2).
 
 ## Target app capabilities
 
