@@ -36,6 +36,7 @@ class GoodsReceiptReceiveViewModel(
     val uiState: StateFlow<GoodsReceiptReceiveUiState> = mutableUiState.asStateFlow()
 
     private var loaded = false
+    private var isScreenActive: Boolean = false
 
     /** Serial đã nhận trong phiên hiện tại (key = lineId|serial) để chặn quét trùng tại chỗ. */
     private val sessionSerials = HashSet<String>()
@@ -43,6 +44,7 @@ class GoodsReceiptReceiveViewModel(
     init {
         viewModelScope.launch {
             scannerManager.scanEvents.collect { event ->
+                if (!isScreenActive) return@collect
                 when (event) {
                     is ScanEvent.Success -> onScan(event.parsed.normalized)
                     is ScanEvent.Error -> setBanner(GrBannerTone.ERROR, event.message)
@@ -57,12 +59,14 @@ class GoodsReceiptReceiveViewModel(
     }
 
     fun onScreenEntered() {
+        isScreenActive = true
         scannerManager.start()
         applyScannerMode(uiState.value.activeLine?.trackingType)
         if (!loaded) load(initial = true)
     }
 
     fun onScreenLeft() {
+        isScreenActive = false
         scannerManager.stop()
     }
 

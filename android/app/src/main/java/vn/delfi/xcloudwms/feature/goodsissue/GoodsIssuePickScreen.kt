@@ -13,13 +13,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,7 +33,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -83,9 +87,23 @@ fun GoodsIssuePickScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text(text = state.header?.displayCode ?: "Phiếu xuất", style = MaterialTheme.typography.titleLarge) },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Quay lại") } },
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = state.header?.displayCode ?: "Phiếu xuất",
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Quay lại",
+                        )
+                    }
+                },
             )
         },
         bottomBar = {
@@ -397,34 +415,38 @@ private fun PickActionBar(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (state.canSubmit) {
-                Button(
-                    onClick = onSubmit,
-                    enabled = !state.isBusy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 54.dp),
-                ) {
-                    if (state.isSubmitting) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text("Chốt picking")
+            if (state.canSubmit || state.canComplete) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (state.canSubmit) {
+                        Button(
+                            onClick = onSubmit,
+                            enabled = !state.isBusy,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 54.dp),
+                        ) {
+                            if (state.isSubmitting) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Lưu")
+                            }
+                        }
                     }
-                }
-            }
-            if (state.canComplete) {
-                Button(
-                    onClick = onComplete,
-                    enabled = !state.isBusy,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 54.dp),
-                ) {
-                    if (state.isCompleting) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    } else {
-                        Text("Xuất kho (hoàn tất)")
+                    if (state.canComplete) {
+                        Button(
+                            onClick = onComplete,
+                            enabled = !state.isBusy,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 54.dp),
+                        ) {
+                            if (state.isCompleting) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Hoàn tất")
+                            }
+                        }
                     }
                 }
             }

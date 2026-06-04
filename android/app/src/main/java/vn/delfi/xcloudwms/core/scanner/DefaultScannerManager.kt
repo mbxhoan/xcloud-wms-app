@@ -97,22 +97,17 @@ class DefaultScannerManager(
     }
 
     override fun submitManualScan(raw: String) {
-        if (!active) {
-            emitError("Máy quét chưa được kích hoạt.", ScanSource.MANUAL)
-            return
-        }
         if (raw.trim().isBlank()) {
             emitError("Mã quét đang trống.", ScanSource.MANUAL)
             return
         }
-        manualAdapter.submit(raw)
+        if (!manualAdapter.submit(raw)) {
+            // Nhập tay/bấm nút là ý định trực tiếp từ UI, vẫn phải xử lý được dù adapter đang tắt.
+            processRaw(RawScan(raw = raw, source = ScanSource.MANUAL))
+        }
     }
 
     override fun submitCapturedScan(raw: String) {
-        if (!active) {
-            emitError("Máy quét chưa được kích hoạt.", ScanSource.KEYBOARD_WEDGE)
-            return
-        }
         if (raw.trim().isBlank()) {
             emitError("Mã quét đang trống.", ScanSource.KEYBOARD_WEDGE)
             return

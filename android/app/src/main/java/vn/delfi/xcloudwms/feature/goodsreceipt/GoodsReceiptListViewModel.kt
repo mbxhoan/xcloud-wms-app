@@ -31,10 +31,12 @@ class GoodsReceiptListViewModel(
 
     private var warehouseId: String? = null
     private var loadedForWarehouse: String? = null
+    private var isScreenActive: Boolean = false
 
     init {
         viewModelScope.launch {
             scannerManager.scanEvents.collect { event ->
+                if (!isScreenActive) return@collect
                 when (event) {
                     is ScanEvent.Success -> onScan(event.parsed.normalized)
                     is ScanEvent.Error -> mutableUiState.update { it.copy(errorMessage = event.message) }
@@ -66,12 +68,14 @@ class GoodsReceiptListViewModel(
     }
 
     fun onScreenEntered() {
+        isScreenActive = true
         scannerManager.setMode(ScannerMode.DOCUMENT)
         scannerManager.start()
         if (loadedForWarehouse == null) load()
     }
 
     fun onScreenLeft() {
+        isScreenActive = false
         scannerManager.stop()
     }
 

@@ -145,7 +145,7 @@ fun PutawayScreen(
                     if (state.isSubmitting) {
                         InlineSpinner()
                     } else {
-                        Text("Hoàn tất sắp xếp (${state.draftLines.size} dòng)")
+                        Text("Hoàn tất (${state.draftLines.size} dòng)")
                     }
                 }
             }

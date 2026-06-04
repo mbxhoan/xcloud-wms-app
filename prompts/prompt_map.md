@@ -18,6 +18,24 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 09:47 — Fix PointMobile keyboard wedge GR submit/runtime
+
+- Prompt summary: Trên PointMobile PM84 cấu hình `Keyboard Event` + `TAB` terminator, mã quét gõ được vào input nhưng bấm `Nhận theo mã quét` lại báo `Máy quét chưa được kích hoạt`; cần làm rõ nguyên nhân và ổn định luồng nhập hàng GR.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ sửa runtime scanner/manual-submit và lifecycle event handling của Goods Receipt native; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/scanner/DefaultScannerManager.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/{GoodsReceiptListViewModel,GoodsReceiptReceiveViewModel}.kt`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `git -C /Users/leviackerman/Codes/xcloud-wms-workspace/app diff --check` ✅
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug` ✅
+- Commit message: `fix(app-gr): stabilize pointmobile keyboard wedge submit`
+- Notes/Risks:
+  - `submitManualScan(...)` trước đó phụ thuộc `scannerManager.active`; với keyboard wedge kiểu gõ vào input, đây là assumption sai vì người dùng đã có mã trong ô và chỉ cần app xử lý chuỗi đó. Logic mới vẫn xử lý manual/captured code kể cả khi scanner adapters đang inactive.
+  - `GoodsReceiptListViewModel` và `GoodsReceiptReceiveViewModel` trước đó vẫn collect `scanEvents` khi màn đã nằm ở back stack; điều này có thể làm màn cũ ăn nhầm lỗi/success của màn mới. Đã thêm guard `isScreenActive` để GR chỉ phản ứng khi màn thực sự đang mở.
+  - Luồng keyboard wedge hiện ổn định cho mode “quét -> mã vào input -> bấm nút xử lý”. Nếu muốn “quét phát ăn ngay không cần bấm” trên PM84 thì nên cân nhắc harden tiếp theo hướng dedicated wedge capture hoặc vendor broadcast intent.
+
 ## 2026-06-04 09:03 — Fix silent GR scan submit on native PDA
 
 - Prompt summary: Khi nhận hàng theo sản phẩm/serial trên màn Goods Receipt native, bấm `Nhận theo mã quét` không thấy submit hay tín hiệu gì, không có thông báo hiển thị rõ trên PDA.
