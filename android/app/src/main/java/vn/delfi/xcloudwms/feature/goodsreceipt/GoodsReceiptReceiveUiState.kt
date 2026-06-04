@@ -39,11 +39,10 @@ data class GoodsReceiptReceiveUiState(
     val isStarting: Boolean = false,
     val processingLineId: String? = null,
     val isSubmitting: Boolean = false,
-    val isCompleting: Boolean = false,
 
-    /** Hiển thị dialog xác nhận khi chốt/hoàn tất lúc còn nhận thiếu. */
+    /** Hiển thị dialog xác nhận khi chốt nhận lúc còn nhận thiếu. */
     val confirm: GrConfirm? = null,
-    /** Phiếu đã COMPLETED → screen điều hướng quay lại. */
+    /** Đã chốt nhận xong → screen điều hướng quay lại. */
     val finished: Boolean = false,
 
     val banner: GrBanner? = null,
@@ -80,11 +79,13 @@ data class GoodsReceiptReceiveUiState(
     val scanButtonLabel: String
         get() = if (requiresLocationSelection) "Chọn vị trí nhập trước" else "Nhận theo mã quét"
 
-    val canSubmit: Boolean
-        get() = header?.status?.canSubmit == true && lines.isNotEmpty() && !isSubmitting && !isCompleting
+    /** "Lưu": chỉ lưu data đã quét, không đổi trạng thái → hiển thị khi phiếu còn đang nhận. */
+    val canSaveDraft: Boolean
+        get() = header?.status?.isScannable == true && lines.isNotEmpty() && !isStarting && !isSubmitting
 
-    val canComplete: Boolean
-        get() = header?.status?.canComplete == true && lines.isNotEmpty() && !isSubmitting && !isCompleting
+    /** "Hoàn tất": chốt nhận RECEIVING → RECEIVED (đã nhận). */
+    val canSubmit: Boolean
+        get() = header?.status?.canSubmit == true && lines.isNotEmpty() && !isSubmitting
 
     /** Active line cần nhập số lượng (LOT/NONE) thay vì serial từng cái. */
     val showQtyInput: Boolean
@@ -97,7 +98,7 @@ data class GoodsReceiptReceiveUiState(
         get() = activeLine?.needsExpiryDate == true
 
     val isBusy: Boolean
-        get() = isStarting || isSubmitting || isCompleting || processingLineId != null
+        get() = isStarting || isSubmitting || processingLineId != null
 
     val canReceiveNoneQuantity: Boolean
         get() = !isBusy && canScan && activeLine?.trackingType == GrTrackingType.NONE && selectedLocationId != null
@@ -105,7 +106,7 @@ data class GoodsReceiptReceiveUiState(
     fun sessionDetailsForLine(lineId: String): List<GrSessionDetail> = sessionDetailsByLineId[lineId].orEmpty()
 }
 
-/** Yêu cầu xác nhận hành động chốt/hoàn tất nhập kho (kèm callback định danh). */
+/** Yêu cầu xác nhận hành động chốt nhận khi còn nhận thiếu (kèm callback định danh). */
 data class GrConfirm(
     val title: String,
     val message: String,
@@ -113,4 +114,4 @@ data class GrConfirm(
     val action: GrConfirmAction,
 )
 
-enum class GrConfirmAction { SUBMIT, COMPLETE }
+enum class GrConfirmAction { SUBMIT }

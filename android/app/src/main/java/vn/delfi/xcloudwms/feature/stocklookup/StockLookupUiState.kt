@@ -19,6 +19,8 @@ data class StockLookupUiState(
     val isEmptyResult: Boolean = false,
     val errorMessage: String? = null,
     val errorRetryable: Boolean = false,
+    /** "Tự động Enter / Tab": bật thì quét xong tra cứu ngay, tắt thì chỉ đổ mã vào ô chờ bấm. */
+    val autoSubmitScanInput: Boolean = true,
 ) {
     /** Số dòng tồn thuộc kho khác đang bị ẩn khi chỉ xem kho hiện tại. */
     val hiddenWarehouseRowCount: Int

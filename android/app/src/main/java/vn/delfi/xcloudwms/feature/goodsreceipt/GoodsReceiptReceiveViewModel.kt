@@ -463,12 +463,33 @@ class GoodsReceiptReceiveViewModel(
         }
     }
 
-    // region submit / complete
+    // region save draft / submit
 
+    /**
+     * Nút "Lưu": chỉ giữ lại dữ liệu items/mã đã quét, KHÔNG đổi trạng thái phiếu.
+     * Mỗi lần nhận (serial/lô/SL) đã ghi `gr_details` ngay nên dữ liệu đã nằm trên server;
+     * "Lưu" chỉ đồng bộ lại số đã nhận và xác nhận, phiếu vẫn ở trạng thái đang nhận để
+     * người dùng quay lại nhận tiếp. Chốt sang "đã nhận" chỉ xảy ra khi bấm "Hoàn tất".
+     */
+    fun saveDraft() {
+        val state = uiState.value
+        if (state.isBusy) return
+        if (!state.canSaveDraft) {
+            setBanner(GrBannerTone.WARNING, "Phiếu không ở trạng thái đang nhận để lưu.")
+            return
+        }
+        backgroundRefreshLines()
+        setBanner(
+            GrBannerTone.SUCCESS,
+            "Đã lưu phiếu. Mã đã quét được giữ lại; phiếu vẫn ở trạng thái đang nhận.",
+        )
+    }
+
+    /** Nút "Hoàn tất": chốt nhận RECEIVING → RECEIVED (đã nhận) qua rpc_gr_submit_receive. */
     fun submit() {
         val state = uiState.value
         if (!state.canSubmit) {
-            setBanner(GrBannerTone.WARNING, "Phiếu không ở trạng thái có thể chốt nhận.")
+            setBanner(GrBannerTone.WARNING, "Phiếu không ở trạng thái có thể hoàn tất.")
             return
         }
         if (state.hasShortage) {
@@ -477,7 +498,7 @@ class GoodsReceiptReceiveViewModel(
                     confirm = GrConfirm(
                         title = "Còn nhận thiếu",
                         message = shortageMessage(state.lines),
-                        confirmLabel = "Vẫn chốt nhận",
+                        confirmLabel = "Vẫn hoàn tất",
                         action = GrConfirmAction.SUBMIT,
                     ),
                 )
@@ -487,34 +508,11 @@ class GoodsReceiptReceiveViewModel(
         doSubmit()
     }
 
-    fun complete() {
-        val state = uiState.value
-        if (!state.canComplete) {
-            setBanner(GrBannerTone.WARNING, "Phiếu không ở trạng thái có thể hoàn tất.")
-            return
-        }
-        if (state.hasShortage) {
-            mutableUiState.update {
-                it.copy(
-                    confirm = GrConfirm(
-                        title = "Hoàn tất khi còn thiếu",
-                        message = shortageMessage(state.lines),
-                        confirmLabel = "Vẫn hoàn tất",
-                        action = GrConfirmAction.COMPLETE,
-                    ),
-                )
-            }
-            return
-        }
-        doComplete()
-    }
-
     fun confirmDialog() {
         val action = uiState.value.confirm?.action
         mutableUiState.update { it.copy(confirm = null) }
         when (action) {
             GrConfirmAction.SUBMIT -> doSubmit()
-            GrConfirmAction.COMPLETE -> doComplete()
             null -> Unit
         }
     }
@@ -544,7 +542,8 @@ class GoodsReceiptReceiveViewModel(
                     isSubmitting = false,
                     header = header ?: it.header,
                     lines = lines ?: it.lines,
-                    finished = completed,
+                    // "Hoàn tất" là thao tác cuối ở PDA → quay lại danh sách sau khi chốt nhận.
+                    finished = true,
                     banner = GrBanner(
                         GrBannerTone.SUCCESS,
                         if (completed) "Đã hoàn tất nhập kho phiếu." else "Đã chốt nhận. Phiếu chuyển sang trạng thái đã nhận.",
@@ -554,34 +553,9 @@ class GoodsReceiptReceiveViewModel(
         }
     }
 
-    private fun doComplete() {
-        if (uiState.value.isCompleting) return
-        if (uiState.value.isOffline) {
-            setBanner(GrBannerTone.WARNING, "Cần có mạng để hoàn tất.")
-            return
-        }
-        mutableUiState.update { it.copy(isCompleting = true, banner = null) }
-        viewModelScope.launch {
-            val result = goodsReceiptRepository.complete(headerId)
-            if (result.isFailure) {
-                finalizeFailure(result.exceptionOrNull(), "Không thể hoàn tất nhập kho.")
-                return@launch
-            }
-            val header = goodsReceiptRepository.loadHeader(headerId).getOrNull()
-            mutableUiState.update {
-                it.copy(
-                    isCompleting = false,
-                    header = header ?: it.header,
-                    finished = true,
-                    banner = GrBanner(GrBannerTone.SUCCESS, "Đã hoàn tất nhập kho. Tồn kho được cập nhật."),
-                )
-            }
-        }
-    }
-
     private fun finalizeFailure(throwable: Throwable?, prefix: String) {
         val appError = (throwable ?: RuntimeException("Lỗi không xác định.")).toAppError()
-        mutableUiState.update { it.copy(isSubmitting = false, isCompleting = false) }
+        mutableUiState.update { it.copy(isSubmitting = false) }
         if (GoodsReceiptErrorMapper.isStatusConflict(appError.message)) {
             setBanner(GrBannerTone.WARNING, "Phiếu đã thay đổi trạng thái. Đang tải lại…")
             reloadDocument(banner = null)

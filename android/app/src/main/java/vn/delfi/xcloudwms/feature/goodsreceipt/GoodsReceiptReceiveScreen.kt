@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -126,7 +125,7 @@ fun GoodsReceiptReceiveScreen(
         },
         bottomBar = {
             if (state.header != null && !state.isLoading) {
-                ReceiveActionBar(state = state, onSubmit = viewModel::submit, onComplete = viewModel::complete)
+                ReceiveActionBar(state = state, onSave = viewModel::saveDraft, onSubmit = viewModel::submit)
             }
         },
     ) { innerPadding ->
@@ -667,8 +666,8 @@ private fun LineCard(
 @Composable
 private fun ReceiveActionBar(
     state: GoodsReceiptReceiveUiState,
+    onSave: () -> Unit,
     onSubmit: () -> Unit,
-    onComplete: () -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -680,9 +679,22 @@ private fun ReceiveActionBar(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (state.canSubmit || state.canComplete) {
+            if (state.canSaveDraft || state.canSubmit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (state.canSaveDraft) {
+                        // "Lưu" = thao tác phụ: chỉ giữ data đã quét, không đổi trạng thái.
+                        OutlinedButton(
+                            onClick = onSave,
+                            enabled = !state.isBusy,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 54.dp),
+                        ) {
+                            Text("Lưu")
+                        }
+                    }
                     if (state.canSubmit) {
+                        // "Hoàn tất" = thao tác chính: chốt nhận → đã nhận.
                         Button(
                             onClick = onSubmit,
                             enabled = !state.isBusy,
@@ -693,29 +705,13 @@ private fun ReceiveActionBar(
                             if (state.isSubmitting) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                             } else {
-                                Text("Lưu")
-                            }
-                        }
-                    }
-                    if (state.canComplete) {
-                        Button(
-                            onClick = onComplete,
-                            enabled = !state.isBusy,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 54.dp),
-                        ) {
-                            if (state.isCompleting) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            } else {
                                 Text("Hoàn tất")
                             }
                         }
                     }
                 }
             }
-            if (!state.canSubmit && !state.canComplete) {
+            if (!state.canSaveDraft && !state.canSubmit) {
                 Text(
                     text = "Phiếu ở trạng thái ${state.header?.status?.label ?: "—"}, không còn thao tác nhận.",
                     style = MaterialTheme.typography.bodySmall,

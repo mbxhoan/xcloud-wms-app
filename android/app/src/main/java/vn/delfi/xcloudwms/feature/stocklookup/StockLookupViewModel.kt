@@ -16,6 +16,7 @@ import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.session.SessionRepository
 import vn.delfi.xcloudwms.data.stock.StockLookupRepository
 import vn.delfi.xcloudwms.data.stock.StockRowFilter
@@ -26,6 +27,7 @@ class StockLookupViewModel(
     private val stockLookupRepository: StockLookupRepository,
     private val sessionRepository: SessionRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val appPreferences: AppPreferences,
     private val logger: SafeLogger,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(StockLookupUiState())
@@ -35,15 +37,27 @@ class StockLookupViewModel(
     private var lastQuery: String = ""
     private var currentWarehouseId: String? = null
 
+    /** Bấm nút "Tra cứu" là ý định trực tiếp → tra cứu dù "Tự động Enter / Tab" đang tắt. */
+    private var forceLookupNextScan: Boolean = false
+
     init {
         viewModelScope.launch {
             scannerManager.scanEvents.collect { event ->
                 when (event) {
-                    is ScanEvent.Success -> runLookup(event.parsed.normalized)
-                    is ScanEvent.Error -> mutableUiState.update {
-                        it.copy(errorMessage = event.message, errorRetryable = false)
+                    is ScanEvent.Success -> handleIncomingScan(event.parsed.normalized)
+                    is ScanEvent.Error -> {
+                        forceLookupNextScan = false
+                        mutableUiState.update {
+                            it.copy(errorMessage = event.message, errorRetryable = false)
+                        }
                     }
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            appPreferences.autoSubmitScanInput.collect { enabled ->
+                mutableUiState.update { it.copy(autoSubmitScanInput = enabled) }
             }
         }
 
@@ -78,8 +92,27 @@ class StockLookupViewModel(
     }
 
     fun submitManual() {
+        forceLookupNextScan = true
         scannerManager.submitManualScan(uiState.value.manualCode)
-        mutableUiState.update { it.copy(manualCode = "") }
+    }
+
+    /**
+     * Nhận mã quét hoàn chỉnh từ pipeline: đổ FULL mã vào ô (ghi đè ký tự lẻ wedge để lọt và
+     * mã trước đó) để không dồn rác và để tra cứu liên tục không cần chạm màn. Tự tra cứu khi
+     * "Tự động Enter / Tab" bật hoặc khi người dùng vừa bấm nút "Tra cứu".
+     */
+    private fun handleIncomingScan(rawCode: String) {
+        val normalized = rawCode.trim()
+        if (normalized.isBlank()) {
+            forceLookupNextScan = false
+            return
+        }
+        val shouldLookup = uiState.value.autoSubmitScanInput || forceLookupNextScan
+        forceLookupNextScan = false
+        mutableUiState.update { it.copy(manualCode = normalized) }
+        if (shouldLookup) {
+            runLookup(normalized)
+        }
     }
 
     fun retry() {
@@ -116,6 +149,8 @@ class StockLookupViewModel(
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
+                            // Lookup xong → trả ô về trống để sẵn sàng quét mã kế tiếp.
+                            manualCode = "",
                             match = null,
                             summary = null,
                             rows = emptyList(),
@@ -140,6 +175,8 @@ class StockLookupViewModel(
         mutableUiState.update {
             it.copy(
                 isLoading = false,
+                // Lookup xong → trả ô về trống để sẵn sàng quét mã kế tiếp.
+                manualCode = "",
                 match = result.match,
                 summary = result.summary,
                 rows = displayed,
@@ -170,6 +207,7 @@ class StockLookupViewModel(
             stockLookupRepository: StockLookupRepository,
             sessionRepository: SessionRepository,
             connectivityObserver: ConnectivityObserver,
+            appPreferences: AppPreferences,
             logger: SafeLogger,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -178,6 +216,7 @@ class StockLookupViewModel(
                     stockLookupRepository = stockLookupRepository,
                     sessionRepository = sessionRepository,
                     connectivityObserver = connectivityObserver,
+                    appPreferences = appPreferences,
                     logger = logger,
                 )
             }

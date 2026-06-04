@@ -329,6 +329,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     stockLookupRepository = appContainer.stockLookupRepository,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )

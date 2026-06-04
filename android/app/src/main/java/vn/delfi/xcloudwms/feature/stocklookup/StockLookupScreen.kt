@@ -66,6 +66,13 @@ fun StockLookupScreen(
                 singleLine = true,
                 label = { Text("Mã hàng / lô / serial / vị trí") },
             )
+            if (!state.autoSubmitScanInput) {
+                Text(
+                    text = "Cài đặt tự động Enter / Tab đang tắt. Quét xong rồi bấm “Tra cứu” để xem tồn.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Button(
                 onClick = viewModel::submitManual,
                 modifier = Modifier
