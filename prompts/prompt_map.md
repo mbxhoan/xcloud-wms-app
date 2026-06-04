@@ -18,6 +18,33 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 08:44 — Device registration and scanner license verification
+
+- Prompt summary: Triển khai device registration/license check cho native scanner app: tạo install id, thu thập device info an toàn, verify/register qua backend contract hiện có, thêm màn trạng thái thiết bị, chặn thao tác khi thiết bị pending/blocked/revoked/expired, heartbeat khi app resume và theo chu kỳ; logout chỉ xóa local session, không xóa đăng ký thiết bị.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ thêm enforcement/device status cho native app theo RPC hiện có `fn_scanner_check_device_license`; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/domain/model/{DeviceLicense,UserSession}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/device/DeviceLicenseRepository.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/di/AppContainer.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/{AppDestination,AppNavHost}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/devicelicense/{DeviceLicenseUiState,DeviceLicenseViewModel,DeviceLicenseScreen}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/{HomeUiState,HomeViewModel,HomeScreen}.kt`
+  - `app/android/app/src/test/java/vn/delfi/xcloudwms/data/device/DeviceLicenseRepositoryTest.kt`
+  - `app/android/app/build.gradle.kts`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug` ✅
+  - `git -C /Users/leviackerman/Codes/xcloud-wms-workspace/app diff --check` ✅
+- Commit message: `feat(app-device): add scanner device license verification`
+- Notes/Risks:
+  - Native app dùng `fn_scanner_check_device_license` làm register + verify + heartbeat; lần gọi đầu trên thiết bị mới sẽ tạo record `PENDING` phía backend như PWA hiện tại.
+  - Session status mới `DEVICE_LICENSE_REQUIRED` sẽ đẩy người dùng sang màn `Trạng thái thiết bị`; app resume sẽ re-check ngay và sau đó heartbeat mỗi 5 phút khi app còn foreground.
+  - Client check được bật cho cả `dev/staging/prod`; việc cho phép hay chặn thực tế do backend quyết định qua feature/mode `scanner_device_license_mode` (`DISABLED` vẫn cho qua).
+  - Contract backend hiện tại chưa thấy reason riêng cho quota/subscription hết hạn trong `fn_scanner_check_device_license`; client đã map sẵn nếu backend bắt đầu trả các code đó, nhưng để hiện đúng case “vượt giới hạn gói”/`EXPIRED` end-to-end thì backend phải emit reason tương ứng.
+  - Màn native hiện hỗ trợ `Kiểm tra lại` + `Đăng xuất`; chưa thêm flow redeem release key trong app vì prompt lần này không yêu cầu.
+
 ## 2026-06-04 08:20 — Brand loading screen (Delfi logo)
 
 - Prompt summary: Triển khai màn loading khi mở app và khi chuyển chức năng, kèm logo Delfi lấy trong `docs/medias/brand`.

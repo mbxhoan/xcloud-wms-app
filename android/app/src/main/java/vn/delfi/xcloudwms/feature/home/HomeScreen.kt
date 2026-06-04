@@ -50,6 +50,7 @@ import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
 fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenWarehouseSwitch: () -> Unit,
+    onOpenDeviceLicense: () -> Unit,
     onOpenDeviceHardwareInfo: () -> Unit,
     onOpenScannerTest: () -> Unit,
     onOpenStockLookup: () -> Unit,
@@ -88,6 +89,12 @@ fun HomeScreen(
         }
 
         SectionCard(title = "Thiết bị đang dùng") {
+            QuickAccessRow(
+                icon = Icons.Filled.QrCodeScanner,
+                title = "Trạng thái cấp phép",
+                subtitle = "Tình trạng hiện tại: ${state.deviceStatusLabel}. Kiểm tra lại sau khi quản trị viên đổi quyền hoặc khi đổi thiết bị.",
+                onClick = onOpenDeviceLicense,
+            )
             QuickAccessRow(
                 icon = Icons.Filled.PhoneAndroid,
                 title = "Thông tin phần cứng",

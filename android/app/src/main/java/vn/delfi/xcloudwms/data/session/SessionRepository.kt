@@ -11,6 +11,8 @@ import vn.delfi.xcloudwms.core.error.toAppError
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.data.auth.AuthContext
 import vn.delfi.xcloudwms.data.auth.AuthRepository
+import vn.delfi.xcloudwms.data.device.DeviceLicenseRepository
+import vn.delfi.xcloudwms.domain.model.DeviceLicenseState
 import vn.delfi.xcloudwms.domain.model.SessionStatus
 import vn.delfi.xcloudwms.domain.model.UserSession
 
@@ -28,6 +30,8 @@ interface SessionRepository {
 
     suspend fun signOut()
 
+    suspend fun refreshDeviceLicense(force: Boolean = false): Result<Unit>
+
     suspend fun selectWarehouse(warehouseId: String): Result<Unit>
 
     suspend fun testConnectionConfig(
@@ -44,6 +48,7 @@ interface SessionRepository {
 class DefaultSessionRepository(
     private val appConfig: AppConfig,
     private val authRepository: AuthRepository,
+    private val deviceLicenseRepository: DeviceLicenseRepository,
     private val logger: SafeLogger,
 ) : SessionRepository {
     private val mutableSession = MutableStateFlow(
@@ -66,11 +71,23 @@ class DefaultSessionRepository(
 
         authRepository.restoreSession()
             .onSuccess { authContext ->
-                mutableSession.value = if (authContext == null) {
-                    emptySession(connectionConfig = connectionConfig)
-                } else {
-                    authContext.toUserSession()
+                if (authContext == null) {
+                    mutableSession.value = emptySession(connectionConfig = connectionConfig)
+                    return@onSuccess
                 }
+
+                resolveAuthenticatedSession(authContext)
+                    .onSuccess { userSession ->
+                        mutableSession.value = userSession
+                    }
+                    .onFailure { throwable ->
+                        val appError = throwable.toAppError()
+                        logger.error("SessionRepository", "Khôi phục phiên thất bại", throwable)
+                        mutableSession.value = emptySession(
+                            connectionConfig = connectionConfig,
+                            errorMessage = appError.message,
+                        )
+                    }
             }
             .onFailure { throwable ->
                 val appError = throwable.toAppError()
@@ -89,10 +106,20 @@ class DefaultSessionRepository(
         return authRepository.signIn(
             identifier = operatorCode,
             password = password,
-        ).map { authContext ->
-            mutableSession.value = authContext.toUserSession()
-            logger.info("SessionRepository", "Đăng nhập thành công cho user=${authContext.userId}")
-        }
+        ).fold(
+            onSuccess = { authContext ->
+                resolveAuthenticatedSession(authContext).map { userSession ->
+                    mutableSession.value = userSession
+                    logger.info(
+                        "SessionRepository",
+                        "Đăng nhập thành công cho user=${authContext.userId} với trạng thái ${userSession.status.name}",
+                    )
+                }
+            },
+            onFailure = { throwable ->
+                Result.failure(throwable)
+            },
+        )
     }
 
     override suspend fun signOut() {
@@ -100,6 +127,45 @@ class DefaultSessionRepository(
         authRepository.signOut()
         mutableSession.value = emptySession(connectionConfig = connectionConfig)
         logger.info("SessionRepository", "Đã xóa phiên đăng nhập cục bộ")
+    }
+
+    override suspend fun refreshDeviceLicense(force: Boolean): Result<Unit> {
+        val currentSession = mutableSession.value
+        val userId = currentSession.userId ?: return Result.success(Unit)
+        val currentDeviceLicense = currentSession.deviceLicense
+        val now = System.currentTimeMillis()
+
+        if (
+            !force &&
+            currentDeviceLicense != null &&
+            now - currentDeviceLicense.checkedAtEpochMillis < DEVICE_LICENSE_REFRESH_THROTTLE_MS
+        ) {
+            return Result.success(Unit)
+        }
+
+        return deviceLicenseRepository.verify(userId).fold(
+            onSuccess = { deviceLicense ->
+                mutableSession.value = currentSession.copy(
+                    status = resolveSessionStatus(
+                        allowedWarehouses = currentSession.allowedWarehouses,
+                        currentWarehouse = currentSession.currentWarehouse,
+                        deviceLicense = deviceLicense,
+                    ),
+                    deviceLicense = deviceLicense,
+                    errorMessage = null,
+                )
+                Result.success(Unit)
+            },
+            onFailure = { throwable ->
+                val error = throwable.toAppError()
+                if (error.code == "SESSION_EXPIRED") {
+                    val connectionConfig = authRepository.getConnectionConfig()
+                    authRepository.signOut()
+                    mutableSession.value = emptySession(connectionConfig = connectionConfig)
+                }
+                Result.failure(throwable)
+            },
+        )
     }
 
     override suspend fun selectWarehouse(warehouseId: String): Result<Unit> {
@@ -126,7 +192,11 @@ class DefaultSessionRepository(
             warehouseId = selectedWarehouse.id,
         )
         mutableSession.value = currentSession.copy(
-            status = SessionStatus.AUTHENTICATED,
+            status = resolveSessionStatus(
+                allowedWarehouses = currentSession.allowedWarehouses,
+                currentWarehouse = selectedWarehouse,
+                deviceLicense = currentSession.deviceLicense,
+            ),
             currentWarehouse = selectedWarehouse,
             errorMessage = null,
         )
@@ -165,15 +235,19 @@ class DefaultSessionRepository(
         return Result.success(Unit)
     }
 
-    private fun AuthContext.toUserSession(): UserSession {
-        val status = when {
-            allowedWarehouses.isEmpty() -> SessionStatus.NO_WAREHOUSE_ASSIGNED
-            currentWarehouse == null -> SessionStatus.WAREHOUSE_SELECTION_REQUIRED
-            else -> SessionStatus.AUTHENTICATED
+    private suspend fun resolveAuthenticatedSession(authContext: AuthContext): Result<UserSession> {
+        return deviceLicenseRepository.verify(authContext.userId).map { deviceLicense ->
+            authContext.toUserSession(deviceLicense = deviceLicense)
         }
+    }
 
+    private fun AuthContext.toUserSession(deviceLicense: DeviceLicenseState): UserSession {
         return UserSession(
-            status = status,
+            status = resolveSessionStatus(
+                allowedWarehouses = allowedWarehouses,
+                currentWarehouse = currentWarehouse,
+                deviceLicense = deviceLicense,
+            ),
             userId = userId,
             email = email,
             operatorCode = operatorCode,
@@ -182,6 +256,7 @@ class DefaultSessionRepository(
             currentWarehouse = currentWarehouse,
             allowedWarehouses = allowedWarehouses,
             permissions = permissions,
+            deviceLicense = deviceLicense,
             buildEnvironment = appConfig.buildEnvironment,
             connectionConfigured = true,
             connectionLabel = connectionLabel,
@@ -207,7 +282,26 @@ class DefaultSessionRepository(
         )
     }
 
+    private fun resolveSessionStatus(
+        allowedWarehouses: List<vn.delfi.xcloudwms.domain.model.WarehouseSummary>,
+        currentWarehouse: vn.delfi.xcloudwms.domain.model.WarehouseSummary?,
+        deviceLicense: DeviceLicenseState?,
+    ): SessionStatus {
+        if (deviceLicense != null && !deviceLicense.canOperate) {
+            return SessionStatus.DEVICE_LICENSE_REQUIRED
+        }
+        return when {
+            allowedWarehouses.isEmpty() -> SessionStatus.NO_WAREHOUSE_ASSIGNED
+            currentWarehouse == null -> SessionStatus.WAREHOUSE_SELECTION_REQUIRED
+            else -> SessionStatus.AUTHENTICATED
+        }
+    }
+
     private fun <T> failure(error: AppError): Result<T> {
         return Result.failure(AppException(error))
+    }
+
+    private companion object {
+        const val DEVICE_LICENSE_REFRESH_THROTTLE_MS = 45_000L
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,7 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import vn.delfi.xcloudwms.core.ui.components.BrandLoadingOverlay
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,6 +30,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import vn.delfi.xcloudwms.core.di.AppContainer
 import vn.delfi.xcloudwms.domain.model.SessionStatus
+import vn.delfi.xcloudwms.feature.devicelicense.DeviceLicenseScreen
+import vn.delfi.xcloudwms.feature.devicelicense.DeviceLicenseViewModel
 import vn.delfi.xcloudwms.feature.deviceinfo.DeviceHardwareInfoScreen
 import vn.delfi.xcloudwms.feature.deviceinfo.DeviceHardwareInfoViewModel
 import vn.delfi.xcloudwms.feature.goodsissue.GoodsIssueListScreen
@@ -60,9 +66,11 @@ import kotlinx.coroutines.launch
 fun AppNavHost(appContainer: AppContainer) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val session by appContainer.sessionRepository.session.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    var isAppResumed by remember { mutableStateOf(false) }
 
     // Loading thương hiệu ngắn khi chuyển chức năng (đổi route).
     var showTransition by remember { mutableStateOf(false) }
@@ -84,6 +92,14 @@ fun AppNavHost(appContainer: AppContainer) {
                 if (currentRoute != AppDestination.Login.route) AppDestination.Login.route else null
             }
 
+            SessionStatus.DEVICE_LICENSE_REQUIRED -> {
+                if (currentRoute != AppDestination.DeviceLicense.route) {
+                    AppDestination.DeviceLicense.route
+                } else {
+                    null
+                }
+            }
+
             SessionStatus.WAREHOUSE_SELECTION_REQUIRED -> {
                 if (currentRoute != AppDestination.WarehouseSwitch.route) {
                     AppDestination.WarehouseSwitch.route
@@ -101,6 +117,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     currentRoute == null ||
                     currentRoute == AppDestination.Splash.route ||
                     currentRoute == AppDestination.Login.route ||
+                    currentRoute == AppDestination.DeviceLicense.route ||
                     currentRoute == AppDestination.WarehouseSwitch.route ||
                     currentRoute == AppDestination.NoWarehouse.route
                 ) {
@@ -118,6 +135,50 @@ fun AppNavHost(appContainer: AppContainer) {
                 }
                 launchSingleTop = true
             }
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    isAppResumed = true
+                    coroutineScope.launch {
+                        appContainer.sessionRepository.refreshDeviceLicense(force = true)
+                    }
+                }
+
+                Lifecycle.Event.ON_PAUSE -> {
+                    isAppResumed = false
+                }
+
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(isAppResumed, session.userId, session.status) {
+        if (
+            !isAppResumed ||
+            session.userId == null ||
+            session.status == SessionStatus.RESTORING ||
+            session.status == SessionStatus.UNAUTHENTICATED
+        ) {
+            return@LaunchedEffect
+        }
+
+        while (
+            isAppResumed &&
+            session.userId != null &&
+            session.status != SessionStatus.RESTORING &&
+            session.status != SessionStatus.UNAUTHENTICATED
+        ) {
+            delay(DEVICE_HEARTBEAT_INTERVAL_MS)
+            appContainer.sessionRepository.refreshDeviceLicense()
         }
     }
 
@@ -187,6 +248,9 @@ fun AppNavHost(appContainer: AppContainer) {
                 onOpenWarehouseSwitch = {
                     navController.navigate(AppDestination.WarehouseSwitch.route)
                 },
+                onOpenDeviceLicense = {
+                    navController.navigate(AppDestination.DeviceLicense.route)
+                },
                 onOpenDeviceHardwareInfo = {
                     navController.navigate(AppDestination.DeviceHardwareInfo.route)
                 },
@@ -207,6 +271,24 @@ fun AppNavHost(appContainer: AppContainer) {
                 },
                 onOpenInventoryCount = {
                     navController.navigate(AppDestination.InventoryCountList.route)
+                },
+            )
+        }
+
+        composable(AppDestination.DeviceLicense.route) {
+            val viewModel: DeviceLicenseViewModel = viewModel(
+                factory = DeviceLicenseViewModel.factory(
+                    sessionRepository = appContainer.sessionRepository,
+                    deviceLicenseRepository = appContainer.deviceLicenseRepository,
+                    logger = appContainer.logger,
+                ),
+            )
+            DeviceLicenseScreen(
+                viewModel = viewModel,
+                onBack = if (session.status == SessionStatus.DEVICE_LICENSE_REQUIRED) {
+                    null
+                } else {
+                    { navController.popBackStack() }
                 },
             )
         }
@@ -398,3 +480,5 @@ fun AppNavHost(appContainer: AppContainer) {
         }
     }
 }
+
+private const val DEVICE_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000L

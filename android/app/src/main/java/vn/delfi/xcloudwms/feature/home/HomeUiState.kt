@@ -16,4 +16,5 @@ data class HomeUiState(
     val connectionLabel: String = "Chưa cấu hình",
     val moduleShortcuts: List<ModuleShortcut> = emptyList(),
     val canSwitchWarehouse: Boolean = false,
+    val deviceStatusLabel: String = "Chưa kiểm tra",
 )

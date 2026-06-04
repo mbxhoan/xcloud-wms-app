@@ -79,7 +79,7 @@ android {
             buildConfigField("String", "DEFAULT_PASSWORD", devDefaultPassword.asBuildConfigString())
             buildConfigField("boolean", "AUTO_LOGIN_ON_LAUNCH", devAutoLogin.toString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
-            buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "false")
+            buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "true")
         }
 
         create("staging") {
@@ -98,7 +98,7 @@ android {
             buildConfigField("String", "DEFAULT_PASSWORD", stagingDefaultPassword.asBuildConfigString())
             buildConfigField("boolean", "AUTO_LOGIN_ON_LAUNCH", stagingAutoLogin.toString())
             buildConfigField("boolean", "ENABLE_CAMERA_SCAN_FALLBACK", "true")
-            buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "false")
+            buildConfigField("boolean", "ENABLE_DEVICE_LICENSE_CHECK", "true")
         }
 
         create("prod") {

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import vn.delfi.xcloudwms.data.session.SessionRepository
+import vn.delfi.xcloudwms.domain.model.DeviceLicenseStatus
 
 class HomeViewModel(
     private val sessionRepository: SessionRepository,
@@ -25,6 +26,14 @@ class HomeViewModel(
             connectionLabel = session.connectionLabel ?: "Chưa cấu hình",
             moduleShortcuts = buildMenuShortcuts(session.permissions),
             canSwitchWarehouse = session.allowedWarehouses.size > 1,
+            deviceStatusLabel = when (session.deviceLicense?.status) {
+                null -> "Chưa kiểm tra"
+                DeviceLicenseStatus.PENDING -> "Chờ duyệt"
+                DeviceLicenseStatus.BLOCKED -> "Bị chặn"
+                DeviceLicenseStatus.REVOKED -> "Đã thu hồi"
+                DeviceLicenseStatus.EXPIRED -> "Hết hạn"
+                else -> "Đang hoạt động"
+            },
         )
     }.stateIn(
         scope = viewModelScope,

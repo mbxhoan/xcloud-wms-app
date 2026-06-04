@@ -22,7 +22,9 @@ import vn.delfi.xcloudwms.core.storage.OfflineStore
 import vn.delfi.xcloudwms.data.auth.AuthRepository
 import vn.delfi.xcloudwms.data.auth.SupabaseAuthRepository
 import vn.delfi.xcloudwms.data.device.DefaultDeviceHardwareRepository
+import vn.delfi.xcloudwms.data.device.DefaultDeviceLicenseRepository
 import vn.delfi.xcloudwms.data.device.DeviceHardwareRepository
+import vn.delfi.xcloudwms.data.device.DeviceLicenseRepository
 import vn.delfi.xcloudwms.data.session.DefaultSessionRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
 import vn.delfi.xcloudwms.data.gi.DefaultGoodsIssueRepository
@@ -49,6 +51,7 @@ interface AppContainer {
     val goodsReceiptRepository: GoodsReceiptRepository
     val inventoryCountRepository: InventoryCountRepository
     val deviceHardwareRepository: DeviceHardwareRepository
+    val deviceLicenseRepository: DeviceLicenseRepository
     val connectivityObserver: ConnectivityObserver
     val putawayOfflineCache: PaOfflineCache
     val deviceId: String
@@ -83,6 +86,16 @@ class DefaultAppContainer(
 
     override val deviceId: String = offlineStore.deviceInstallId()
 
+    override val deviceLicenseRepository: DeviceLicenseRepository = DefaultDeviceLicenseRepository(
+        context = application,
+        appConfig = appConfig,
+        networkClient = networkClient,
+        appPreferences = appPreferences,
+        secureSessionStorage = secureSessionStorage,
+        offlineStore = offlineStore,
+        logger = logger,
+    )
+
     private val authRepository: AuthRepository = SupabaseAuthRepository(
         networkClient = networkClient,
         appPreferences = appPreferences,
@@ -115,6 +128,7 @@ class DefaultAppContainer(
     override val sessionRepository: SessionRepository = DefaultSessionRepository(
         appConfig = appConfig,
         authRepository = authRepository,
+        deviceLicenseRepository = deviceLicenseRepository,
         logger = logger,
     )
 
