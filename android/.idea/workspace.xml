@@ -5,13 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="815e146f-2593-49e1-b611-39652a3498f7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveUiState.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupUiState.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupUiState.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/stocklookup/StockLookupViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/app/build.gradle.kts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

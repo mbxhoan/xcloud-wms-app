@@ -13,6 +13,19 @@ val localProperties = Properties().apply {
     }
 }
 
+// Release signing is opt-in via an un-committed `keystore.properties` at the
+// android module root (see keystore.properties.example). When the file is
+// absent the release build stays unsigned exactly as before, so CI / dev
+// machines without the keystore can still run `assembleRelease`.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use(::load)
+    }
+}
+val hasReleaseKeystore = keystorePropertiesFile.exists() &&
+    !keystoreProperties.getProperty("storeFile").isNullOrBlank()
+
 fun resolveBuildValue(vararg keys: String): String {
     return keys.firstNotNullOfOrNull { key ->
         providers.gradleProperty(key).orNull?.trim()?.takeIf { it.isNotEmpty() }
@@ -58,6 +71,17 @@ android {
         }
 
         buildConfigField("String", "APP_CHANNEL", "\"SCANNER_NATIVE\"")
+    }
+
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     flavorDimensions += "environment"
@@ -126,6 +150,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Signed only when keystore.properties is present; otherwise the
+            // output is `*-release-unsigned.apk` and must be signed manually.
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

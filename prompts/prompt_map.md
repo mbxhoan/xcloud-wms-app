@@ -18,6 +18,34 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 15:00 — Android QA, build & release workflow
+
+- Prompt summary: Chuẩn hóa test/build/release cho native Android scanner app: verify Gradle tasks, docs ký release không commit keystore, docs build variants, template QA execution report, smoke test script/checklist, versioning policy, rollback policy. Verify bằng `./gradlew test/assembleDebug/assembleRelease`.
+- Ticket/Issue ID: (none)
+- Scope: `app/android + app/docs + app/checklists + app/scripts` - thêm signing config có điều kiện + docs/checklist/script; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/build.gradle.kts` (thêm signingConfigs `release` có điều kiện + buildTypes.release dùng signingConfig khi có keystore)
+  - `app/android/.gitignore` (chặn `keystore.properties`, `*.jks`, `*.keystore`)
+  - `app/android/keystore.properties.example` (mới)
+  - `app/docs/11_GRADLE_TASKS_BUILD_VARIANTS_SIGNING.md` (mới)
+  - `app/docs/12_VERSIONING_AND_ROLLBACK_POLICY.md` (mới)
+  - `app/checklists/qa_execution_report_template.md` (mới)
+  - `app/checklists/smoke_test_checklist.md` (mới)
+  - `app/scripts/{build-debug,build-release,install-pda,collect-logcat,smoke-test}.sh` (mới) + `app/scripts/README.md`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run (JDK 17 + Android SDK android-35, build-tools 35.0.0):
+  - `cd app/android && ./gradlew test` ✅ BUILD SUCCESSFUL — 69 unit test / 12 class pass mỗi flavor (parser, GR ViewModel UI-state, error mapper, validator, debouncer, retry, request-id, device license, stock filter).
+  - `cd app/android && ./gradlew assembleDebug` ✅ BUILD SUCCESSFUL (dev/staging/prod debug).
+  - `cd app/android && ./gradlew assembleRelease` ✅ BUILD SUCCESSFUL — ra `app-*-release-unsigned.apk` khi chưa có keystore (fallback giữ nguyên hành vi cũ).
+  - Verify signing: tạo keystore test tạm → `keystore.properties` tạm → `./gradlew :app:assembleProdRelease --rerun-tasks` ✅ ra `app-prod-release.apk`, `apksigner verify` xác nhận chữ ký hợp lệ; đã xóa keystore + keystore.properties tạm sau verify.
+  - `./scripts/build-debug.sh dev` ✅, `bash -n` toàn bộ script ✅, `git -C app diff --check` ✅.
+- Commit message: `chore(app-release): add android qa build and release workflow`
+- Notes/Risks:
+  - Signing là opt-in: không có `keystore.properties` thì release vẫn ra bản UNSIGNED như trước (CI/máy dev không có keystore vẫn build được). Bản phát hành thật bắt buộc cấu hình keystore + ký.
+  - Chưa bật `isMinifyEnabled`/R8 cho release (giữ nguyên), versionCode vẫn = 1 / versionName 0.1.0 — bump theo policy ở doc 12 khi phát hành.
+  - `android/.idea/workspace.xml` là IDE noise (tracked sẵn), không thuộc thay đổi task; không stage.
+  - `connectedAndroidTest`/instrumented test cần thiết bị/emulator, chưa chạy trong môi trường này.
+
 ## 2026-06-04 11:00 — Align native GR receive flow with scanner UX
 
 - Prompt summary: Chỉnh native Android app `/app` theo UX của scanner PWA cho luồng nhập hàng: chặn nhập tay vào vị trí, tách cài đặt/thông tin máy sang màn riêng, thêm setting tự động Enter/Tab mặc định bật, ổn định auto-focus ô quét và cho phép bấm dòng sản phẩm để xem chi tiết mã đã quét trong phiên.
