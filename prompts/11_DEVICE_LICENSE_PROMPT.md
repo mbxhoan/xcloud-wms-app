@@ -1,4 +1,4 @@
-# 11 — Device License Prompt
+# H 11 — Device License Prompt
 
 Triển khai device registration/license check cho native scanner app.
 

@@ -1,10 +1,21 @@
 package vn.delfi.xcloudwms.core.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import vn.delfi.xcloudwms.core.ui.components.BrandLoadingOverlay
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -53,6 +64,16 @@ fun AppNavHost(appContainer: AppContainer) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Loading thương hiệu ngắn khi chuyển chức năng (đổi route).
+    var showTransition by remember { mutableStateOf(false) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != null) {
+            showTransition = true
+            delay(420)
+            showTransition = false
+        }
+    }
+
     LaunchedEffect(session.status, currentRoute) {
         val shouldNavigateTo = when (session.status) {
             SessionStatus.RESTORING -> {
@@ -100,6 +121,7 @@ fun AppNavHost(appContainer: AppContainer) {
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     NavHost(
         navController = navController,
         startDestination = AppDestination.Splash.route,
@@ -364,6 +386,15 @@ fun AppNavHost(appContainer: AppContainer) {
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )
+        }
+    }
+
+        AnimatedVisibility(
+            visible = showTransition,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            BrandLoadingOverlay()
         }
     }
 }

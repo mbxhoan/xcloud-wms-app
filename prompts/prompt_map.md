@@ -18,6 +18,27 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 08:20 — Brand loading screen (Delfi logo)
+
+- Prompt summary: Triển khai màn loading khi mở app và khi chuyển chức năng, kèm logo Delfi lấy trong `docs/medias/brand`.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ thêm UI loading thương hiệu + asset logo; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/res/drawable-nodpi/delfi_logo.png` (từ `docs/medias/brand/logo-240x240-removebg.png`)
+  - `app/android/app/src/main/res/drawable-nodpi/delfi_logo_text.png` (từ `docs/medias/brand/logo-text.png`)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/BrandLoading.kt` (mới: `BrandLoading` + `BrandLoadingOverlay`)
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/splash/SplashScreen.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅
+- Commit message: `feat(app-ui): add delfi brand loading on launch and feature switch`
+- Notes/Risks:
+  - Splash (mở app) dùng `BrandLoading` (logo + wordmark + spinner + pulse nhẹ).
+  - Chuyển chức năng: `AppNavHost` hiện `BrandLoadingOverlay` ~420ms khi đổi route (fade in/out), nền theme che màn trước.
+  - Logo đặt `drawable-nodpi` (PNG 240x240 RGBA trong suốt) để không bị scale theo density.
+  - Overlay theo route hiển thị cả ở splash/login/home (thừa nhẹ, vô hại); muốn chỉ hiện khi vào feature page thì lọc theo nhóm route — chưa làm để giữ đơn giản.
+
 ## 2026-06-03 21:10 — Phase 10 offline-lite & sync (PA pilot)
 
 - Prompt summary: Triển khai offline-lite/reliability cho native app (prompt 10): connectivity monitor, offline banner, cache nhẹ user/warehouse/product/location, local draft PA/IC trước submit, retry GET/list/detail, request id idempotency cho API commit, conflict UI, thông báo rõ "Cần có mạng để hoàn tất" cho commit không queue được. Không silent queue GR/GI/PA/IC commit khi backend chưa idempotent; không show success khi chưa có response thành công.

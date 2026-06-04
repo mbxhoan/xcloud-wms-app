@@ -1,28 +1,18 @@
 package vn.delfi.xcloudwms.feature.splash
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
-import vn.delfi.xcloudwms.core.ui.components.SectionCard
-import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
+import androidx.compose.ui.Modifier
+import vn.delfi.xcloudwms.core.ui.components.BrandLoading
 
 @Composable
 fun SplashScreen() {
-    XcloudScaffold(
-        title = "Đang khởi tạo",
-        subtitle = "Đang kiểm tra phiên đăng nhập, tenant và kho đang thao tác.",
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
-        SectionCard(title = "Vui lòng chờ") {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Ứng dụng đang đồng bộ thông tin truy cập với hệ thống.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        BrandLoading(message = "Đang kiểm tra phiên đăng nhập, tenant và kho đang thao tác…")
     }
 }
