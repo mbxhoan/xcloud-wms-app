@@ -65,6 +65,8 @@ fun GoodsReceiptReceiveScreen(
     onBack: () -> Unit,
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    var sessionDetailLineId by remember { mutableStateOf<String?>(null) }
+    val sessionDetailLine = state.lines.firstOrNull { it.id == sessionDetailLineId }
 
     DisposableEffect(Unit) {
         viewModel.onScreenEntered()
@@ -89,6 +91,14 @@ fun GoodsReceiptReceiveScreen(
             dismissButton = {
                 TextButton(onClick = viewModel::dismissDialog) { Text("Huỷ") }
             },
+        )
+    }
+
+    if (sessionDetailLine != null) {
+        SessionDetailsDialog(
+            line = sessionDetailLine,
+            details = state.sessionDetailsForLine(sessionDetailLine.id),
+            onDismiss = { sessionDetailLineId = null },
         )
     }
 
@@ -164,7 +174,13 @@ fun GoodsReceiptReceiveScreen(
                     item { GrBannerCard(banner, onDismiss = viewModel::dismissBanner) }
                 }
                 item { HeaderSummaryCard(state) }
-                item { ActiveLineCard(state, viewModel) }
+                item {
+                    ActiveLineCard(
+                        state = state,
+                        viewModel = viewModel,
+                        onOpenSessionDetails = { lineId -> sessionDetailLineId = lineId },
+                    )
+                }
                 item {
                     Text(
                         text = "Danh sách dòng (${state.lines.size})",
@@ -174,11 +190,18 @@ fun GoodsReceiptReceiveScreen(
                     )
                 }
                 items(state.lines, key = { it.id }) { line ->
+                    val sessionDetailCount = state.sessionDetailsForLine(line.id).size
                     LineCard(
                         line = line,
                         isActive = line.id == state.activeLineId,
                         isProcessing = line.id == state.processingLineId,
-                        onSelect = { viewModel.selectLine(line.id) },
+                        sessionDetailCount = sessionDetailCount,
+                        onSelect = {
+                            viewModel.selectLine(line.id)
+                            if (sessionDetailCount > 0) {
+                                sessionDetailLineId = line.id
+                            }
+                        },
                     )
                 }
             }
@@ -232,7 +255,11 @@ private fun HeaderSummaryCard(state: GoodsReceiptReceiveUiState) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsReceiptReceiveViewModel) {
+private fun ActiveLineCard(
+    state: GoodsReceiptReceiveUiState,
+    viewModel: GoodsReceiptReceiveViewModel,
+    onOpenSessionDetails: (String) -> Unit,
+) {
     val line = state.activeLine
     val showLocationError = state.requiresLocationSelection && state.scannedCode.isNotBlank()
     SectionCard(title = "Đang nhận") {
@@ -257,6 +284,16 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelLarge,
                 )
+            }
+        }
+
+        val sessionDetailCount = state.sessionDetailsForLine(line.id).size
+        if (sessionDetailCount > 0) {
+            TextButton(
+                onClick = { onOpenSessionDetails(line.id) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Xem mã đã quét trong phiên ($sessionDetailCount)")
             }
         }
 
@@ -334,10 +371,21 @@ private fun ActiveLineCard(state: GoodsReceiptReceiveUiState, viewModel: GoodsRe
             onValueChange = viewModel::updateScannedCode,
             modifier = Modifier
                 .fillMaxWidth()
-                .alwaysFocusedScanInput(keepFocused = false),
+                .alwaysFocusedScanInput(
+                    enabled = state.canScan,
+                    keepFocused = false,
+                    focusKey = "${state.activeLineId}:${state.selectedLocationId}:${state.processingLineId ?: "-"}",
+                ),
             singleLine = true,
             label = { Text("Mã quét (serial / lô / sản phẩm)") },
         )
+        if (!state.autoSubmitScanInput) {
+            Text(
+                text = "Cài đặt tự động Enter / Tab đang tắt. Quét xong rồi bấm “Nhận theo mã quét” để lưu.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = viewModel::submitScannedCode,
@@ -372,52 +420,167 @@ private fun LocationPicker(
     showError: Boolean,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val filtered = state.filteredLocations()
-    Box {
-        OutlinedTextField(
-            value = state.locationQuery,
-            onValueChange = {
-                viewModel.updateLocationQuery(it)
-                expanded = true
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("Vị trí nhập (bắt buộc)") },
-            isError = showError,
-            trailingIcon = {
-                TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Đóng" else "Chọn") }
-            },
-            supportingText = {
-                val selected = state.selectedLocation
-                if (selected != null) {
-                    Text("Đã chọn: ${selected.label}")
-                } else {
-                    Text(
-                        text = if (showError) {
-                            "Cần chọn vị trí nhập trước khi nhận theo mã quét."
-                        } else {
-                            "Chọn vị trí trong kho hiện tại trước khi nhận."
-                        },
-                        color = if (showError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
+    val selected = state.selectedLocation
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = "Vị trí nhập (bắt buộc)",
+            style = MaterialTheme.typography.labelLarge,
+            color = if (showError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        DropdownMenu(
-            expanded = expanded && filtered.isNotEmpty(),
-            onDismissRequest = { expanded = false },
-        ) {
-            filtered.forEach { loc ->
-                DropdownMenuItem(
-                    text = { Text(loc.label) },
-                    onClick = {
-                        viewModel.selectLocation(loc.id)
-                        expanded = false
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (showError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                ),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text(
+                    text = selected?.label ?: "Chọn vị trí nhập",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (selected != null) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
+                Text(if (expanded) "Đóng" else "Chọn")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.heightIn(max = 320.dp),
+            ) {
+                state.locations.forEach { loc ->
+                    DropdownMenuItem(
+                        text = { Text(loc.label) },
+                        onClick = {
+                            viewModel.selectLocation(loc.id)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
+        Text(
+            text = if (selected != null) {
+                "Đã chọn: ${selected.label}"
+            } else if (showError) {
+                "Cần chọn vị trí nhập trước khi nhận theo mã quét."
+            } else {
+                "Chọn vị trí trong kho hiện tại trước khi nhận."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (showError && selected == null) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
     }
+}
+
+@Composable
+private fun SessionDetailsDialog(
+    line: GrLine,
+    details: List<GrSessionDetail>,
+    onDismiss: () -> Unit,
+) {
+    val detailTitle = when (line.trackingType) {
+        GrTrackingType.SERIAL -> "Danh sách serial"
+        GrTrackingType.LOT -> "Danh sách lô"
+        GrTrackingType.NONE -> "Danh sách SKU"
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = line.productLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                TrackingPill(line.trackingType)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "$detailTitle trong phiên (${details.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (details.isEmpty()) {
+                    Text(
+                        text = "Chưa có mã nào được nhận trong phiên hiện tại.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 360.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(details, key = { it.id }) { detail ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(
+                                        text = detail.code,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = "SL: ${formatQty(detail.qty)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Text(
+                                        text = "Vị trí: ${detail.locationLabel}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    detail.mfgDate?.let { mfgDate ->
+                                        Text(
+                                            text = "NSX: $mfgDate",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    detail.expiryDate?.let { expiryDate ->
+                                        Text(
+                                            text = "HSD: $expiryDate",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Đóng") }
+        },
+    )
 }
 
 @Composable
@@ -425,6 +588,7 @@ private fun LineCard(
     line: GrLine,
     isActive: Boolean,
     isProcessing: Boolean,
+    sessionDetailCount: Int,
     onSelect: () -> Unit,
 ) {
     val border = if (isActive) {
@@ -489,6 +653,13 @@ private fun LineCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (line.isComplete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (sessionDetailCount > 0) {
+                Text(
+                    text = "Đã quét trong phiên: $sessionDetailCount",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

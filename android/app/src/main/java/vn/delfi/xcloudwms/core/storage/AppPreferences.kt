@@ -23,6 +23,7 @@ class AppPreferences(
         mutableBroadcastScannerConfig.asStateFlow()
 
     private val mutableBlockSoftKeyboard = MutableStateFlow(loadBlockSoftKeyboard())
+    private val mutableAutoSubmitScanInput = MutableStateFlow(loadAutoSubmitScanInput())
 
     /**
      * Bật/tắt việc chặn bàn phím ảo của thiết bị trong toàn app. Mặc định BẬT để tối ưu thao tác
@@ -30,11 +31,24 @@ class AppPreferences(
      */
     val blockSoftKeyboard: StateFlow<Boolean> = mutableBlockSoftKeyboard.asStateFlow()
 
+    /**
+     * Khi BẬT, mã quét từ PDA sẽ được xử lý ngay như thao tác Enter/Tab sau khi nhận đủ chuỗi.
+     * Khi TẮT, app chỉ đưa mã vào ô quét và chờ người dùng bấm nút xác nhận.
+     */
+    val autoSubmitScanInput: StateFlow<Boolean> = mutableAutoSubmitScanInput.asStateFlow()
+
     fun setBlockSoftKeyboard(enabled: Boolean) {
         sharedPreferences.edit()
             .putBoolean(KEY_BLOCK_SOFT_KEYBOARD, enabled)
             .apply()
         mutableBlockSoftKeyboard.value = enabled
+    }
+
+    fun setAutoSubmitScanInput(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_AUTO_SUBMIT_SCAN_INPUT, enabled)
+            .apply()
+        mutableAutoSubmitScanInput.value = enabled
     }
 
     fun currentConnectionConfig(): ConnectionConfig? = mutableConnectionConfig.value
@@ -118,6 +132,10 @@ class AppPreferences(
         return sharedPreferences.getBoolean(KEY_BLOCK_SOFT_KEYBOARD, true)
     }
 
+    private fun loadAutoSubmitScanInput(): Boolean {
+        return sharedPreferences.getBoolean(KEY_AUTO_SUBMIT_SCAN_INPUT, true)
+    }
+
     private fun loadBroadcastScannerConfig(): BroadcastScannerConfig {
         return BroadcastScannerConfig(
             action = sharedPreferences.getString(KEY_BROADCAST_ACTION, "").orEmpty(),
@@ -137,5 +155,6 @@ class AppPreferences(
         const val KEY_BROADCAST_SYMBOLOGY_KEY = "broadcast_scanner_symbology_key"
         const val KEY_BROADCAST_ENABLED = "broadcast_scanner_enabled"
         const val KEY_BLOCK_SOFT_KEYBOARD = "block_soft_keyboard"
+        const val KEY_AUTO_SUBMIT_SCAN_INPUT = "auto_submit_scan_input"
     }
 }

@@ -9,6 +9,18 @@ enum class GrBannerTone { SUCCESS, ERROR, WARNING }
 
 data class GrBanner(val tone: GrBannerTone, val message: String)
 
+data class GrSessionDetail(
+    val id: String,
+    val lineId: String,
+    val code: String,
+    val qty: Double,
+    val trackingType: GrTrackingType,
+    val locationLabel: String,
+    val mfgDate: String?,
+    val expiryDate: String?,
+    val scannedAtMillis: Long,
+)
+
 data class GoodsReceiptReceiveUiState(
     val isOffline: Boolean = false,
     val isLoading: Boolean = true,
@@ -19,7 +31,6 @@ data class GoodsReceiptReceiveUiState(
 
     val activeLineId: String? = null,
     val selectedLocationId: String? = null,
-    val locationQuery: String = "",
     val scannedCode: String = "",
     val qtyText: String = "1",
     val mfgDateText: String = "",
@@ -36,6 +47,8 @@ data class GoodsReceiptReceiveUiState(
     val finished: Boolean = false,
 
     val banner: GrBanner? = null,
+    val autoSubmitScanInput: Boolean = true,
+    val sessionDetailsByLineId: Map<String, List<GrSessionDetail>> = emptyMap(),
 ) {
     val activeLine: GrLine?
         get() = activeLineId?.let { id -> lines.firstOrNull { it.id == id } }
@@ -89,13 +102,7 @@ data class GoodsReceiptReceiveUiState(
     val canReceiveNoneQuantity: Boolean
         get() = !isBusy && canScan && activeLine?.trackingType == GrTrackingType.NONE && selectedLocationId != null
 
-    fun filteredLocations(): List<GrLocation> {
-        val q = locationQuery.trim().lowercase()
-        if (q.isEmpty()) return locations.take(30)
-        return locations.filter { loc ->
-            loc.code.lowercase().contains(q) || (loc.name?.lowercase()?.contains(q) == true)
-        }.take(30)
-    }
+    fun sessionDetailsForLine(lineId: String): List<GrSessionDetail> = sessionDetailsByLineId[lineId].orEmpty()
 }
 
 /** Yêu cầu xác nhận hành động chốt/hoàn tất nhập kho (kèm callback định danh). */

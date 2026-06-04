@@ -6,6 +6,7 @@ enum class AppDestination(val route: String) {
     WarehouseSwitch("warehouse_switch"),
     NoWarehouse("no_warehouse"),
     Home("home"),
+    Settings("settings"),
     DeviceLicense("device_license"),
     DeviceHardwareInfo("device_hardware_info"),
     ScannerTest("scanner_test"),

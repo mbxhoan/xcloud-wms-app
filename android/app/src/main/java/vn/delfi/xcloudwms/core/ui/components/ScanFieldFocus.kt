@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.delay
 
 /**
  * Modifier cho ô quét mã: tự động focus khi vào màn và (tuỳ chọn) tự lấy lại focus khi bị mất, giúp
@@ -24,11 +25,17 @@ import androidx.compose.ui.focus.onFocusChanged
 fun Modifier.alwaysFocusedScanInput(
     enabled: Boolean = true,
     keepFocused: Boolean = true,
+    focusKey: Any? = Unit,
 ): Modifier {
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(enabled) {
+    LaunchedEffect(enabled, focusKey) {
         if (enabled) {
-            runCatching { focusRequester.requestFocus() }
+            repeat(3) { attempt ->
+                if (attempt > 0) {
+                    delay(if (attempt == 1) 90L else 220L)
+                }
+                runCatching { focusRequester.requestFocus() }
+            }
         }
     }
     return this

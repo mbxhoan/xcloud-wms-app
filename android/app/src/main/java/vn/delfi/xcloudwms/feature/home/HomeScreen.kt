@@ -22,15 +22,13 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoveToInbox
 import androidx.compose.material.icons.filled.Outbox
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,16 +40,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onOpenDeviceLicense: () -> Unit,
-    onOpenDeviceHardwareInfo: () -> Unit,
-    onOpenScannerTest: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenStockLookup: () -> Unit,
     onOpenPutaway: () -> Unit,
     onOpenGoodsIssue: () -> Unit,
@@ -59,7 +54,6 @@ fun HomeScreen(
     onOpenInventoryCount: () -> Unit,
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
-    val blockSoftKeyboard = viewModel.blockSoftKeyboard.collectAsStateWithLifecycle().value
 
     val onModuleClick: (String?) -> Unit = { actionKey ->
         when (actionKey) {
@@ -81,74 +75,13 @@ fun HomeScreen(
 
         ModuleGridSection(shortcuts = state.moduleShortcuts, onModuleClick = onModuleClick)
 
-        SectionCard(title = "Tác vụ nhanh") {
+        SectionCard(title = "Cài đặt & thiết bị") {
             QuickAccessRow(
-                icon = Icons.Filled.QrCodeScanner,
-                title = "Quét thử mã bằng PDA",
-                subtitle = "Bấm cò quét bên hông PDA và xem mã nhận được ngay.",
-                onClick = onOpenScannerTest,
+                icon = Icons.Filled.Settings,
+                title = "Mở cài đặt và thông tin máy",
+                subtitle = "Trạng thái thiết bị: ${state.deviceStatusLabel}. Mở cài đặt quét, quét thử mã và xem phần cứng.",
+                onClick = onOpenSettings,
             )
-        }
-
-        SectionCard(title = "Thiết bị đang dùng") {
-            QuickAccessRow(
-                icon = Icons.Filled.QrCodeScanner,
-                title = "Trạng thái cấp phép",
-                subtitle = "Tình trạng hiện tại: ${state.deviceStatusLabel}. Kiểm tra lại sau khi quản trị viên đổi quyền hoặc khi đổi thiết bị.",
-                onClick = onOpenDeviceLicense,
-            )
-            QuickAccessRow(
-                icon = Icons.Filled.PhoneAndroid,
-                title = "Thông tin phần cứng",
-                subtitle = "Xem dòng máy, Android, IP, MAC, Bluetooth, IMEI, serial và dữ liệu thiết bị.",
-                onClick = onOpenDeviceHardwareInfo,
-            )
-        }
-
-        SectionCard(title = "Ngữ cảnh hiện tại") {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                InfoPill(text = state.buildEnvironment)
-                Text(
-                    text = "Nhân viên: ${state.operatorName}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = "Đơn vị: ${state.tenantLabel}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Kết nối: ${state.connectionLabel}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        SectionCard(title = "Tùy chỉnh") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "Ẩn bàn phím ảo",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = "Chặn bàn phím ảo của thiết bị trong app. Phù hợp PDA/máy có bàn phím cứng. Tắt nếu muốn nhập tay bằng bàn phím ảo.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = blockSoftKeyboard,
-                    onCheckedChange = viewModel::setBlockSoftKeyboard,
-                )
-            }
         }
 
         Column(

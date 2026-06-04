@@ -18,6 +18,27 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 11:00 — Align native GR receive flow with scanner UX
+
+- Prompt summary: Chỉnh native Android app `/app` theo UX của scanner PWA cho luồng nhập hàng: chặn nhập tay vào vị trí, tách cài đặt/thông tin máy sang màn riêng, thêm setting tự động Enter/Tab mặc định bật, ổn định auto-focus ô quét và cho phép bấm dòng sản phẩm để xem chi tiết mã đã quét trong phiên.
+- Ticket/Issue ID: (none)
+- Scope: `app/android` - chỉ sửa native navigation/settings/GR receive UI-state; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/{navigation/{AppDestination,AppNavHost}.kt,storage/AppPreferences.kt,ui/components/ScanFieldFocus.kt}`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/{GoodsReceiptReceiveScreen,GoodsReceiptReceiveUiState,GoodsReceiptReceiveViewModel}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/home/HomeScreen.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/settings/{AppSettingsScreen,AppSettingsViewModel}.kt`
+- Tests run:
+  - `git -C /Users/leviackerman/Codes/xcloud-wms-workspace/app diff --check` ✅
+  - `cd app/android && ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug` ❌ bị chặn bởi sandbox Gradle wrapper (`~/.gradle` lock)
+  - `cd app/android && GRADLE_USER_HOME=/private/tmp/xcloud-gradle ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug` ❌ Gradle cần socket/file-lock ngoài sandbox; escalation tiếp theo bị auto-review từ chối vì usage limit của môi trường
+- Commit message: `fix(app-gr): align native receive flow with scanner ux`
+- Notes/Risks:
+  - Màn `Cài đặt` mới là nơi gom `Ẩn bàn phím ảo`, `Tự động Enter / Tab`, quét thử, trạng thái cấp phép và thông tin máy; `Home` được rút gọn để ưu tiên thao tác nghiệp vụ.
+  - GR native bỏ `locationQuery` và chỉ cho chọn vị trí từ menu, tránh trạng thái wedge/nhập rác làm kẹt field.
+  - Setting `Tự động Enter / Tab` hiện được nối vào pipeline GR receive: bật thì scan event xử lý ngay, tắt thì chỉ đổ mã vào ô và chờ nút `Nhận theo mã quét`.
+  - Chi tiết mã đã quét hiện mới là session-local trên client (serial/lot/SKU đã nhận trong phiên hiện tại), chưa hydrate ngược từ `gr_details` lịch sử server.
+
 ## 2026-06-04 09:47 — Fix PointMobile keyboard wedge GR submit/runtime
 
 - Prompt summary: Trên PointMobile PM84 cấu hình `Keyboard Event` + `TAB` terminator, mã quét gõ được vào input nhưng bấm `Nhận theo mã quét` lại báo `Máy quét chưa được kích hoạt`; cần làm rõ nguyên nhân và ổn định luồng nhập hàng GR.

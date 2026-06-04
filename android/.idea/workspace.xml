@@ -5,11 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="815e146f-2593-49e1-b611-39652a3498f7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/scanner/DefaultScannerManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/core/scanner/DefaultScannerManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptListViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptListViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/vn/delfi/xcloudwms/feature/goodsreceipt/GoodsReceiptReceiveViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../prompts/prompt_map.md" beforeDir="false" afterPath="$PROJECT_DIR$/../prompts/prompt_map.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -18,6 +18,7 @@ import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.gr.GoodsReceiptErrorMapper
 import vn.delfi.xcloudwms.data.gr.GoodsReceiptRepository
 import vn.delfi.xcloudwms.domain.model.GrLine
@@ -30,6 +31,7 @@ class GoodsReceiptReceiveViewModel(
     private val scannerManager: ScannerManager,
     private val goodsReceiptRepository: GoodsReceiptRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val appPreferences: AppPreferences,
     private val logger: SafeLogger,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(GoodsReceiptReceiveUiState())
@@ -37,6 +39,8 @@ class GoodsReceiptReceiveViewModel(
 
     private var loaded = false
     private var isScreenActive: Boolean = false
+    private var forceProcessNextScan: Boolean = false
+    private var sessionDetailSequence: Long = 0L
 
     /** Serial đã nhận trong phiên hiện tại (key = lineId|serial) để chặn quét trùng tại chỗ. */
     private val sessionSerials = HashSet<String>()
@@ -46,14 +50,22 @@ class GoodsReceiptReceiveViewModel(
             scannerManager.scanEvents.collect { event ->
                 if (!isScreenActive) return@collect
                 when (event) {
-                    is ScanEvent.Success -> onScan(event.parsed.normalized)
-                    is ScanEvent.Error -> setBanner(GrBannerTone.ERROR, event.message)
+                    is ScanEvent.Success -> handleIncomingScan(event.parsed.normalized)
+                    is ScanEvent.Error -> {
+                        forceProcessNextScan = false
+                        setBanner(GrBannerTone.ERROR, event.message)
+                    }
                 }
             }
         }
         viewModelScope.launch {
             connectivityObserver.isOnline.collect { online ->
                 mutableUiState.update { it.copy(isOffline = !online) }
+            }
+        }
+        viewModelScope.launch {
+            appPreferences.autoSubmitScanInput.collect { enabled ->
+                mutableUiState.update { it.copy(autoSubmitScanInput = enabled) }
             }
         }
     }
@@ -90,13 +102,15 @@ class GoodsReceiptReceiveViewModel(
         mutableUiState.update { it.copy(expiryDateText = value) }
     }
 
-    fun updateLocationQuery(value: String) {
-        mutableUiState.update { it.copy(locationQuery = value, selectedLocationId = null) }
-    }
-
     fun selectLocation(locationId: String) {
         val loc = uiState.value.locations.firstOrNull { it.id == locationId } ?: return
-        mutableUiState.update { it.copy(selectedLocationId = locationId, locationQuery = loc.code) }
+        mutableUiState.update {
+            if (it.selectedLocationId == loc.id) {
+                it
+            } else {
+                it.copy(selectedLocationId = loc.id, banner = null)
+            }
+        }
     }
 
     fun selectLine(lineId: String) {
@@ -104,6 +118,7 @@ class GoodsReceiptReceiveViewModel(
         mutableUiState.update {
             it.copy(
                 activeLineId = lineId,
+                scannedCode = "",
                 qtyText = if (line.trackingType == GrTrackingType.SERIAL) "1" else it.qtyText.ifBlank { "1" },
                 banner = null,
             )
@@ -117,6 +132,7 @@ class GoodsReceiptReceiveViewModel(
             setBanner(GrBannerTone.WARNING, "Quét hoặc nhập mã trước khi nhận.")
             return
         }
+        forceProcessNextScan = true
         scannerManager.submitManualScan(code)
     }
 
@@ -137,7 +153,21 @@ class GoodsReceiptReceiveViewModel(
             setBanner(GrBannerTone.WARNING, "Nhập số lượng hợp lệ.")
             return
         }
-        runReceive(line) { goodsReceiptRepository.receiveNone(line, locationId, qty) }
+        runReceive(
+            line = line,
+            onSuccessExtra = {
+                appendSessionDetail(
+                    line = line,
+                    code = line.productCode,
+                    qty = qty,
+                    locationId = locationId,
+                    mfgDate = null,
+                    expiryDate = null,
+                )
+            },
+        ) {
+            goodsReceiptRepository.receiveNone(line, locationId, qty)
+        }
     }
 
     private fun load(initial: Boolean) {
@@ -249,7 +279,22 @@ class GoodsReceiptReceiveViewModel(
                     setBanner(GrBannerTone.WARNING, dateErr)
                     return
                 }
-                runReceive(line, onSuccessExtra = { sessionSerials.add(key) }) {
+                val mfgDate = mfgOrNull()
+                val expiryDate = expiryOrNull()
+                runReceive(
+                    line = line,
+                    onSuccessExtra = {
+                        sessionSerials.add(key)
+                        appendSessionDetail(
+                            line = line,
+                            code = code,
+                            qty = 1.0,
+                            locationId = locationId,
+                            mfgDate = mfgDate,
+                            expiryDate = expiryDate,
+                        )
+                    },
+                ) {
                     goodsReceiptRepository.receiveSerial(line, locationId, code, mfgOrNull(), expiryOrNull())
                 }
             }
@@ -269,7 +314,21 @@ class GoodsReceiptReceiveViewModel(
                     setBanner(GrBannerTone.WARNING, dateErr)
                     return
                 }
-                runReceive(line) {
+                val mfgDate = mfgOrNull()
+                val expiryDate = expiryOrNull()
+                runReceive(
+                    line = line,
+                    onSuccessExtra = {
+                        appendSessionDetail(
+                            line = line,
+                            code = code,
+                            qty = qty,
+                            locationId = locationId,
+                            mfgDate = mfgDate,
+                            expiryDate = expiryDate,
+                        )
+                    },
+                ) {
                     goodsReceiptRepository.receiveLot(line, locationId, code, qty, mfgOrNull(), expiryOrNull())
                 }
             }
@@ -288,8 +347,31 @@ class GoodsReceiptReceiveViewModel(
                     setBanner(GrBannerTone.WARNING, "Vượt số lượng cần nhận của dòng.")
                     return
                 }
-                runReceive(line) { goodsReceiptRepository.receiveNone(line, locationId, qty) }
+                runReceive(
+                    line = line,
+                    onSuccessExtra = {
+                        appendSessionDetail(
+                            line = line,
+                            code = code,
+                            qty = qty,
+                            locationId = locationId,
+                            mfgDate = null,
+                            expiryDate = null,
+                        )
+                    },
+                ) {
+                    goodsReceiptRepository.receiveNone(line, locationId, qty)
+                }
             }
+        }
+    }
+
+    private fun handleIncomingScan(normalizedCode: String) {
+        val shouldProcessImmediately = uiState.value.autoSubmitScanInput || forceProcessNextScan
+        forceProcessNextScan = false
+        mutableUiState.update { it.copy(scannedCode = normalizedCode, banner = null) }
+        if (shouldProcessImmediately) {
+            onScan(normalizedCode)
         }
     }
 
@@ -544,6 +626,41 @@ class GoodsReceiptReceiveViewModel(
         mutableUiState.update { it.copy(banner = GrBanner(tone, message)) }
     }
 
+    private fun appendSessionDetail(
+        line: GrLine,
+        code: String,
+        qty: Double,
+        locationId: String,
+        mfgDate: String?,
+        expiryDate: String?,
+    ) {
+        val normalizedCode = code.trim()
+        if (normalizedCode.isEmpty()) return
+        sessionDetailSequence += 1
+        val detail = GrSessionDetail(
+            id = "gr-session-${line.id}-$sessionDetailSequence",
+            lineId = line.id,
+            code = normalizedCode,
+            qty = qty,
+            trackingType = line.trackingType,
+            locationLabel = resolveLocationLabel(locationId),
+            mfgDate = mfgDate,
+            expiryDate = expiryDate,
+            scannedAtMillis = System.currentTimeMillis(),
+        )
+        mutableUiState.update { current ->
+            val currentDetails = current.sessionDetailsByLineId[line.id].orEmpty()
+            current.copy(
+                sessionDetailsByLineId = current.sessionDetailsByLineId + (line.id to listOf(detail) + currentDetails),
+            )
+        }
+    }
+
+    private fun resolveLocationLabel(locationId: String): String {
+        val location = uiState.value.locations.firstOrNull { it.id == locationId }
+        return location?.label ?: locationId
+    }
+
     private fun formatQty(value: Double): String =
         if (value % 1.0 == 0.0) value.toLong().toString() else value.toString().trimEnd('0').trimEnd('.')
 
@@ -556,6 +673,7 @@ class GoodsReceiptReceiveViewModel(
             scannerManager: ScannerManager,
             goodsReceiptRepository: GoodsReceiptRepository,
             connectivityObserver: ConnectivityObserver,
+            appPreferences: AppPreferences,
             logger: SafeLogger,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -564,6 +682,7 @@ class GoodsReceiptReceiveViewModel(
                     scannerManager = scannerManager,
                     goodsReceiptRepository = goodsReceiptRepository,
                     connectivityObserver = connectivityObserver,
+                    appPreferences = appPreferences,
                     logger = logger,
                 )
             }

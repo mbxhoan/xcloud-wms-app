@@ -54,6 +54,8 @@ import vn.delfi.xcloudwms.feature.putaway.PutawayScreen
 import vn.delfi.xcloudwms.feature.putaway.PutawayViewModel
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestScreen
 import vn.delfi.xcloudwms.feature.scannertest.ScannerTestViewModel
+import vn.delfi.xcloudwms.feature.settings.AppSettingsScreen
+import vn.delfi.xcloudwms.feature.settings.AppSettingsViewModel
 import vn.delfi.xcloudwms.feature.splash.SplashScreen
 import vn.delfi.xcloudwms.feature.stocklookup.StockLookupScreen
 import vn.delfi.xcloudwms.feature.stocklookup.StockLookupViewModel
@@ -246,14 +248,8 @@ fun AppNavHost(appContainer: AppContainer) {
             )
             HomeScreen(
                 viewModel = viewModel,
-                onOpenDeviceLicense = {
-                    navController.navigate(AppDestination.DeviceLicense.route)
-                },
-                onOpenDeviceHardwareInfo = {
-                    navController.navigate(AppDestination.DeviceHardwareInfo.route)
-                },
-                onOpenScannerTest = {
-                    navController.navigate(AppDestination.ScannerTest.route)
+                onOpenSettings = {
+                    navController.navigate(AppDestination.Settings.route)
                 },
                 onOpenStockLookup = {
                     navController.navigate(AppDestination.StockLookup.route)
@@ -269,6 +265,28 @@ fun AppNavHost(appContainer: AppContainer) {
                 },
                 onOpenInventoryCount = {
                     navController.navigate(AppDestination.InventoryCountList.route)
+                },
+            )
+        }
+
+        composable(AppDestination.Settings.route) {
+            val viewModel: AppSettingsViewModel = viewModel(
+                factory = AppSettingsViewModel.factory(
+                    sessionRepository = appContainer.sessionRepository,
+                    appPreferences = appContainer.appPreferences,
+                ),
+            )
+            AppSettingsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onOpenDeviceLicense = {
+                    navController.navigate(AppDestination.DeviceLicense.route)
+                },
+                onOpenDeviceHardwareInfo = {
+                    navController.navigate(AppDestination.DeviceHardwareInfo.route)
+                },
+                onOpenScannerTest = {
+                    navController.navigate(AppDestination.ScannerTest.route)
                 },
             )
         }
@@ -407,6 +425,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     scannerManager = appContainer.scannerManager,
                     goodsReceiptRepository = appContainer.goodsReceiptRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )
