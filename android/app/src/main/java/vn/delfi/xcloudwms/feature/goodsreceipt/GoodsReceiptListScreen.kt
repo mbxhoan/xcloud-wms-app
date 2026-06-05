@@ -16,7 +16,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,9 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
+import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
-import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.GrHeader
 import vn.delfi.xcloudwms.domain.model.GrStatus
 
@@ -66,14 +65,12 @@ fun GoodsReceiptListScreen(
 
         SectionCard(title = "Tìm phiếu nhập") {
             InfoPill(text = "Kho: ${state.warehouseLabel}")
-            OutlinedTextField(
+            PdaScanField(
                 value = state.query,
                 onValueChange = viewModel::updateQuery,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alwaysFocusedScanInput(),
-                singleLine = true,
-                label = { Text("Quét hoặc nhập mã phiếu") },
+                label = "Quét hoặc nhập mã phiếu",
+                modifier = Modifier.fillMaxWidth(),
+                onSubmit = viewModel::submitManualSearch,
             )
             OutlinedButton(
                 onClick = viewModel::refresh,

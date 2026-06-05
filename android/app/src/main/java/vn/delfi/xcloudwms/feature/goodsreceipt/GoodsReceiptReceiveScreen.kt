@@ -52,8 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
+import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
-import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.GrLine
 import vn.delfi.xcloudwms.domain.model.GrTrackingType
 
@@ -365,22 +365,19 @@ private fun ActiveLineCard(
             )
         }
 
-        OutlinedTextField(
+        PdaScanField(
             value = state.scannedCode,
             onValueChange = viewModel::updateScannedCode,
-            modifier = Modifier
-                .fillMaxWidth()
-                .alwaysFocusedScanInput(
-                    enabled = state.canScan,
-                    keepFocused = false,
-                    focusKey = "${state.activeLineId}:${state.selectedLocationId}:${state.processingLineId ?: "-"}",
-                ),
-            singleLine = true,
-            label = { Text("Mã quét (serial / lô / sản phẩm)") },
+            label = "Mã quét (serial / lô / sản phẩm)",
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.canScan,
+            keepFocused = false,
+            focusKey = "${state.activeLineId}:${state.selectedLocationId}:${state.processingLineId ?: "-"}",
+            onSubmit = viewModel::submitScannedCode,
         )
         if (!state.autoSubmitScanInput) {
             Text(
-                text = "Cài đặt tự động Enter / Tab đang tắt. Quét xong rồi bấm “Nhận theo mã quét” để lưu.",
+                text = "Chế độ quét hiện tại chỉ điền mã vào ô. Quét xong rồi bấm “Nhận theo mã quét” để lưu.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

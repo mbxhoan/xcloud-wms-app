@@ -16,6 +16,8 @@ import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
+import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.gi.GoodsIssueErrorMapper
 import vn.delfi.xcloudwms.data.gi.GoodsIssueRepository
 import vn.delfi.xcloudwms.domain.model.GiLine
@@ -27,20 +29,31 @@ class GoodsIssuePickViewModel(
     private val scannerManager: ScannerManager,
     private val goodsIssueRepository: GoodsIssueRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val appPreferences: AppPreferences,
     private val logger: SafeLogger,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(GoodsIssuePickUiState())
     val uiState: StateFlow<GoodsIssuePickUiState> = mutableUiState.asStateFlow()
 
     private var loaded = false
+    private var scanSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER
+    private var forceProcessNextScan: Boolean = false
 
     init {
         viewModelScope.launch {
             scannerManager.scanEvents.collect { event ->
                 when (event) {
-                    is ScanEvent.Success -> onScan(event.parsed.normalized)
-                    is ScanEvent.Error -> setBanner(GiBannerTone.ERROR, event.message)
+                    is ScanEvent.Success -> handleIncomingScan(event.parsed.normalized)
+                    is ScanEvent.Error -> {
+                        forceProcessNextScan = false
+                        setBanner(GiBannerTone.ERROR, event.message)
+                    }
                 }
+            }
+        }
+        viewModelScope.launch {
+            appPreferences.scannerSubmitMode.collect { mode ->
+                scanSubmitMode = mode
             }
         }
         viewModelScope.launch {
@@ -86,7 +99,11 @@ class GoodsIssuePickViewModel(
 
     fun submitScannedCode() {
         val code = uiState.value.scannedCode
-        if (code.isNotBlank()) onScan(code)
+        if (code.isBlank()) {
+            return
+        }
+        forceProcessNextScan = true
+        scannerManager.submitManualScan(code)
     }
 
     /** Nút "Lấy" cho dòng NONE (không cần quét). */
@@ -168,6 +185,15 @@ class GoodsIssuePickViewModel(
                     banner = banner?.let { GiBanner(GiBannerTone.WARNING, it) } ?: current.banner,
                 )
             }
+        }
+    }
+
+    private fun handleIncomingScan(normalizedCode: String) {
+        val shouldProcessImmediately = scanSubmitMode == ScannerSubmitMode.ENTER || forceProcessNextScan
+        forceProcessNextScan = false
+        mutableUiState.update { it.copy(scannedCode = normalizedCode, banner = null) }
+        if (shouldProcessImmediately) {
+            onScan(normalizedCode)
         }
     }
 
@@ -455,6 +481,7 @@ class GoodsIssuePickViewModel(
             scannerManager: ScannerManager,
             goodsIssueRepository: GoodsIssueRepository,
             connectivityObserver: ConnectivityObserver,
+            appPreferences: AppPreferences,
             logger: SafeLogger,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -463,6 +490,7 @@ class GoodsIssuePickViewModel(
                     scannerManager = scannerManager,
                     goodsIssueRepository = goodsIssueRepository,
                     connectivityObserver = connectivityObserver,
+                    appPreferences = appPreferences,
                     logger = logger,
                 )
             }

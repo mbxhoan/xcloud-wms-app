@@ -346,6 +346,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     putawayRepository = appContainer.putawayRepository,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     offlineCache = appContainer.putawayOfflineCache,
                     deviceId = appContainer.deviceId,
                     logger = appContainer.logger,
@@ -364,6 +365,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     goodsIssueRepository = appContainer.goodsIssueRepository,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )
@@ -387,6 +389,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     scannerManager = appContainer.scannerManager,
                     goodsIssueRepository = appContainer.goodsIssueRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )
@@ -403,6 +406,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     goodsReceiptRepository = appContainer.goodsReceiptRepository,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )
@@ -443,6 +447,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     inventoryCountRepository = appContainer.inventoryCountRepository,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )
@@ -466,6 +471,7 @@ fun AppNavHost(appContainer: AppContainer) {
                     scannerManager = appContainer.scannerManager,
                     inventoryCountRepository = appContainer.inventoryCountRepository,
                     connectivityObserver = appContainer.connectivityObserver,
+                    appPreferences = appContainer.appPreferences,
                     logger = appContainer.logger,
                 ),
             )

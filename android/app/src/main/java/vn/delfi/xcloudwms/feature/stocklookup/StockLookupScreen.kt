@@ -12,7 +12,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -25,9 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
+import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
-import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.StockMatch
 import vn.delfi.xcloudwms.domain.model.StockRow
 import vn.delfi.xcloudwms.domain.model.StockSummary
@@ -57,18 +56,16 @@ fun StockLookupScreen(
 
         SectionCard(title = "Quét hoặc nhập mã") {
             InfoPill(text = "Kho: ${state.currentWarehouseLabel}")
-            OutlinedTextField(
+            PdaScanField(
                 value = state.manualCode,
                 onValueChange = viewModel::updateManualCode,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alwaysFocusedScanInput(),
-                singleLine = true,
-                label = { Text("Mã hàng / lô / serial / vị trí") },
+                label = "Mã hàng / lô / serial / vị trí",
+                modifier = Modifier.fillMaxWidth(),
+                onSubmit = viewModel::submitManual,
             )
             if (!state.autoSubmitScanInput) {
                 Text(
-                    text = "Cài đặt tự động Enter / Tab đang tắt. Quét xong rồi bấm “Tra cứu” để xem tồn.",
+                    text = "Chế độ quét hiện tại chỉ điền mã vào ô. Quét xong rồi bấm “Tra cứu” để xem tồn.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

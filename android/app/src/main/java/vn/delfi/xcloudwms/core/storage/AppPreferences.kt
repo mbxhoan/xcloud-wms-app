@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import vn.delfi.xcloudwms.core.config.ConnectionConfig
 import vn.delfi.xcloudwms.core.scanner.BroadcastScannerConfig
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 
 class AppPreferences(
     context: Context,
@@ -23,7 +24,8 @@ class AppPreferences(
         mutableBroadcastScannerConfig.asStateFlow()
 
     private val mutableBlockSoftKeyboard = MutableStateFlow(loadBlockSoftKeyboard())
-    private val mutableAutoSubmitScanInput = MutableStateFlow(loadAutoSubmitScanInput())
+    private val mutableScannerSubmitMode = MutableStateFlow(loadScannerSubmitMode())
+    private val mutableAllowManualInputFallback = MutableStateFlow(loadAllowManualInputFallback())
 
     /**
      * Bật/tắt việc chặn bàn phím ảo của thiết bị trong toàn app. Mặc định BẬT để tối ưu thao tác
@@ -32,10 +34,15 @@ class AppPreferences(
     val blockSoftKeyboard: StateFlow<Boolean> = mutableBlockSoftKeyboard.asStateFlow()
 
     /**
-     * Khi BẬT, mã quét từ PDA sẽ được xử lý ngay như thao tác Enter/Tab sau khi nhận đủ chuỗi.
-     * Khi TẮT, app chỉ đưa mã vào ô quét và chờ người dùng bấm nút xác nhận.
+     * Quy định app xử lý gì sau khi nhận đủ mã quét từ PDA.
      */
-    val autoSubmitScanInput: StateFlow<Boolean> = mutableAutoSubmitScanInput.asStateFlow()
+    val scannerSubmitMode: StateFlow<ScannerSubmitMode> = mutableScannerSubmitMode.asStateFlow()
+
+    /**
+     * Khi BẬT, người dùng vẫn có thể nhập tay vào các ô quét bằng bàn phím mềm để test/emulator.
+     * PDA production nên để TẮT để bám hành vi "scan target" đúng chuẩn.
+     */
+    val allowManualInputFallback: StateFlow<Boolean> = mutableAllowManualInputFallback.asStateFlow()
 
     fun setBlockSoftKeyboard(enabled: Boolean) {
         sharedPreferences.edit()
@@ -44,11 +51,18 @@ class AppPreferences(
         mutableBlockSoftKeyboard.value = enabled
     }
 
-    fun setAutoSubmitScanInput(enabled: Boolean) {
+    fun setScannerSubmitMode(mode: ScannerSubmitMode) {
         sharedPreferences.edit()
-            .putBoolean(KEY_AUTO_SUBMIT_SCAN_INPUT, enabled)
+            .putString(KEY_SCANNER_SUBMIT_MODE, mode.name)
             .apply()
-        mutableAutoSubmitScanInput.value = enabled
+        mutableScannerSubmitMode.value = mode
+    }
+
+    fun setAllowManualInputFallback(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_ALLOW_MANUAL_INPUT_FALLBACK, enabled)
+            .apply()
+        mutableAllowManualInputFallback.value = enabled
     }
 
     fun currentConnectionConfig(): ConnectionConfig? = mutableConnectionConfig.value
@@ -132,8 +146,17 @@ class AppPreferences(
         return sharedPreferences.getBoolean(KEY_BLOCK_SOFT_KEYBOARD, true)
     }
 
-    private fun loadAutoSubmitScanInput(): Boolean {
-        return sharedPreferences.getBoolean(KEY_AUTO_SUBMIT_SCAN_INPUT, true)
+    private fun loadScannerSubmitMode(): ScannerSubmitMode {
+        val saved = sharedPreferences.getString(KEY_SCANNER_SUBMIT_MODE, null)
+        if (!saved.isNullOrBlank()) {
+            return runCatching { ScannerSubmitMode.valueOf(saved) }.getOrDefault(ScannerSubmitMode.ENTER)
+        }
+        val legacyAutoSubmit = sharedPreferences.getBoolean(KEY_AUTO_SUBMIT_SCAN_INPUT, true)
+        return if (legacyAutoSubmit) ScannerSubmitMode.ENTER else ScannerSubmitMode.NONE
+    }
+
+    private fun loadAllowManualInputFallback(): Boolean {
+        return sharedPreferences.getBoolean(KEY_ALLOW_MANUAL_INPUT_FALLBACK, false)
     }
 
     private fun loadBroadcastScannerConfig(): BroadcastScannerConfig {
@@ -155,6 +178,8 @@ class AppPreferences(
         const val KEY_BROADCAST_SYMBOLOGY_KEY = "broadcast_scanner_symbology_key"
         const val KEY_BROADCAST_ENABLED = "broadcast_scanner_enabled"
         const val KEY_BLOCK_SOFT_KEYBOARD = "block_soft_keyboard"
+        const val KEY_SCANNER_SUBMIT_MODE = "scanner_submit_mode"
+        const val KEY_ALLOW_MANUAL_INPUT_FALLBACK = "allow_manual_input_fallback"
         const val KEY_AUTO_SUBMIT_SCAN_INPUT = "auto_submit_scan_input"
     }
 }

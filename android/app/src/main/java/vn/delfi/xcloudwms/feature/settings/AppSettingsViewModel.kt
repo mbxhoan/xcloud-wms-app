@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.session.SessionRepository
 import vn.delfi.xcloudwms.domain.model.DeviceLicenseStatus
@@ -23,7 +24,8 @@ data class AppSettingsUiState(
     val connectionLabel: String = "Chưa cấu hình",
     val deviceStatusLabel: String = "Chưa kiểm tra",
     val blockSoftKeyboard: Boolean = true,
-    val autoSubmitScanInput: Boolean = true,
+    val scannerSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER,
+    val allowManualInputFallback: Boolean = false,
 )
 
 class AppSettingsViewModel(
@@ -34,8 +36,9 @@ class AppSettingsViewModel(
     val uiState: StateFlow<AppSettingsUiState> = combine(
         sessionRepository.session,
         appPreferences.blockSoftKeyboard,
-        appPreferences.autoSubmitScanInput,
-    ) { session, blockSoftKeyboard, autoSubmitScanInput ->
+        appPreferences.scannerSubmitMode,
+        appPreferences.allowManualInputFallback,
+    ) { session, blockSoftKeyboard, scannerSubmitMode, allowManualInputFallback ->
         AppSettingsUiState(
             operatorName = session.displayName ?: "Chưa đăng nhập",
             roleLabels = session.roles,
@@ -52,7 +55,8 @@ class AppSettingsViewModel(
                 else -> "Đang hoạt động"
             },
             blockSoftKeyboard = blockSoftKeyboard,
-            autoSubmitScanInput = autoSubmitScanInput,
+            scannerSubmitMode = scannerSubmitMode,
+            allowManualInputFallback = allowManualInputFallback,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -64,8 +68,12 @@ class AppSettingsViewModel(
         appPreferences.setBlockSoftKeyboard(enabled)
     }
 
-    fun setAutoSubmitScanInput(enabled: Boolean) {
-        appPreferences.setAutoSubmitScanInput(enabled)
+    fun setScannerSubmitMode(mode: ScannerSubmitMode) {
+        appPreferences.setScannerSubmitMode(mode)
+    }
+
+    fun setAllowManualInputFallback(enabled: Boolean) {
+        appPreferences.setAllowManualInputFallback(enabled)
     }
 
     fun logout() {

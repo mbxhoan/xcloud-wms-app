@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
@@ -54,11 +56,15 @@ fun AppSettingsScreen(
                 checked = state.blockSoftKeyboard,
                 onCheckedChange = viewModel::setBlockSoftKeyboard,
             )
+            ScannerSubmitModeRow(
+                selectedMode = state.scannerSubmitMode,
+                onSelectMode = viewModel::setScannerSubmitMode,
+            )
             SettingSwitchRow(
-                title = "Tự động Enter / Tab",
-                subtitle = "Bật để quét xong là nhận ngay. Tắt để chỉ đưa mã vào ô quét và chờ bấm nút “Nhận theo mã quét”.",
-                checked = state.autoSubmitScanInput,
-                onCheckedChange = viewModel::setAutoSubmitScanInput,
+                title = "Cho phép nhập tay ở ô quét",
+                subtitle = "Bật cho emulator/dev hoặc khi cần gõ thử bằng bàn phím mềm. PDA production nên tắt để ô quét chỉ nhận scan target.",
+                checked = state.allowManualInputFallback,
+                onCheckedChange = viewModel::setAllowManualInputFallback,
             )
             SettingsActionRow(
                 icon = Icons.Filled.QrCodeScanner,
@@ -126,6 +132,60 @@ fun AppSettingsScreen(
             Text("  Đăng xuất")
         }
     }
+}
+
+@Composable
+private fun ScannerSubmitModeRow(
+    selectedMode: ScannerSubmitMode,
+    onSelectMode: (ScannerSubmitMode) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Sau khi nhận đủ mã quét",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "ENTER: xử lý ngay. TAB: chuyển sang step/field quét kế tiếp nếu màn có. NONE: chỉ điền mã và chờ người dùng bấm nút.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SubmitModeChip(
+                label = "ENTER",
+                selected = selectedMode == ScannerSubmitMode.ENTER,
+                modifier = Modifier.weight(1f),
+            ) { onSelectMode(ScannerSubmitMode.ENTER) }
+            SubmitModeChip(
+                label = "TAB",
+                selected = selectedMode == ScannerSubmitMode.TAB,
+                modifier = Modifier.weight(1f),
+            ) { onSelectMode(ScannerSubmitMode.TAB) }
+            SubmitModeChip(
+                label = "NONE",
+                selected = selectedMode == ScannerSubmitMode.NONE,
+                modifier = Modifier.weight(1f),
+            ) { onSelectMode(ScannerSubmitMode.NONE) }
+        }
+    }
+}
+
+@Composable
+private fun SubmitModeChip(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        modifier = modifier,
+    )
 }
 
 @Composable

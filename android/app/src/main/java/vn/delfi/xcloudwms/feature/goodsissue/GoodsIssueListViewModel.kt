@@ -16,6 +16,8 @@ import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
+import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.gi.GoodsIssueRepository
 import vn.delfi.xcloudwms.data.session.SessionRepository
 
@@ -24,6 +26,7 @@ class GoodsIssueListViewModel(
     private val goodsIssueRepository: GoodsIssueRepository,
     private val sessionRepository: SessionRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val appPreferences: AppPreferences,
     private val logger: SafeLogger,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(GoodsIssueListUiState())
@@ -31,6 +34,7 @@ class GoodsIssueListViewModel(
 
     private var warehouseId: String? = null
     private var loadedForWarehouse: String? = null
+    private var scanSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER
 
     init {
         viewModelScope.launch {
@@ -39,6 +43,12 @@ class GoodsIssueListViewModel(
                     is ScanEvent.Success -> onScan(event.parsed.normalized)
                     is ScanEvent.Error -> mutableUiState.update { it.copy(errorMessage = event.message) }
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            appPreferences.scannerSubmitMode.collect { mode ->
+                scanSubmitMode = mode
             }
         }
 
@@ -80,7 +90,7 @@ class GoodsIssueListViewModel(
     }
 
     fun submitManualSearch() {
-        onScan(uiState.value.query)
+        onScan(uiState.value.query, triggerOpen = true)
     }
 
     fun consumeOpenEvent() {
@@ -114,10 +124,16 @@ class GoodsIssueListViewModel(
         }
     }
 
-    private fun onScan(rawCode: String) {
+    private fun onScan(
+        rawCode: String,
+        triggerOpen: Boolean = scanSubmitMode == ScannerSubmitMode.ENTER,
+    ) {
         val code = rawCode.trim()
         if (code.isBlank()) return
-        mutableUiState.update { it.copy(query = code) }
+        mutableUiState.update { it.copy(query = code, pendingOpenHeaderId = null) }
+        if (!triggerOpen) {
+            return
+        }
         val matches = uiState.value.headers.filter { header ->
             header.code?.equals(code, ignoreCase = true) == true ||
                 header.id == code ||
@@ -136,6 +152,7 @@ class GoodsIssueListViewModel(
             goodsIssueRepository: GoodsIssueRepository,
             sessionRepository: SessionRepository,
             connectivityObserver: ConnectivityObserver,
+            appPreferences: AppPreferences,
             logger: SafeLogger,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -144,6 +161,7 @@ class GoodsIssueListViewModel(
                     goodsIssueRepository = goodsIssueRepository,
                     sessionRepository = sessionRepository,
                     connectivityObserver = connectivityObserver,
+                    appPreferences = appPreferences,
                     logger = logger,
                 )
             }

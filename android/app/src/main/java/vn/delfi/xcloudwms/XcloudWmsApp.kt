@@ -11,11 +11,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.delfi.xcloudwms.core.di.AppContainer
 import vn.delfi.xcloudwms.core.navigation.AppNavHost
+import vn.delfi.xcloudwms.core.ui.components.LocalPdaScanFieldSettings
+import vn.delfi.xcloudwms.core.ui.components.PdaScanFieldSettings
 import vn.delfi.xcloudwms.core.ui.theme.XcloudWmsTheme
 
 @Composable
 fun XcloudWmsApp(appContainer: AppContainer) {
     val blockSoftKeyboard by appContainer.appPreferences.blockSoftKeyboard
+        .collectAsStateWithLifecycle()
+    val scannerSubmitMode by appContainer.appPreferences.scannerSubmitMode
+        .collectAsStateWithLifecycle()
+    val allowManualInputFallback by appContainer.appPreferences.allowManualInputFallback
         .collectAsStateWithLifecycle()
     val session by appContainer.sessionRepository.session.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -24,7 +30,7 @@ fun XcloudWmsApp(appContainer: AppContainer) {
     // phím cứng (PDA/bàn phím vật lý, keyboard-wedge) nhưng không bật bàn phím ảo khi focus ô nhập.
     // Chỉ chặn khi đã đăng nhập để tránh khoá thao tác nhập tài khoản ở màn đăng nhập trên thiết bị
     // không có bàn phím cứng.
-    val shouldBlock = blockSoftKeyboard && session.isAuthenticated
+    val shouldBlock = blockSoftKeyboard && session.isAuthenticated && !allowManualInputFallback
     LaunchedEffect(shouldBlock) {
         val window = context.findActivity()?.window ?: return@LaunchedEffect
         if (shouldBlock) {
@@ -38,7 +44,15 @@ fun XcloudWmsApp(appContainer: AppContainer) {
     }
 
     XcloudWmsTheme {
-        AppNavHost(appContainer = appContainer)
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalPdaScanFieldSettings provides PdaScanFieldSettings(
+                blockSoftKeyboard = blockSoftKeyboard,
+                submitMode = scannerSubmitMode,
+                allowManualInputFallback = allowManualInputFallback,
+            ),
+        ) {
+            AppNavHost(appContainer = appContainer)
+        }
     }
 }
 

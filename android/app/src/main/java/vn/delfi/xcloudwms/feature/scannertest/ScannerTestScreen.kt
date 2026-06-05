@@ -1,10 +1,5 @@
 package vn.delfi.xcloudwms.feature.scannertest
 
-import android.text.InputType
-import android.view.KeyEvent
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,17 +16,15 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
+import vn.delfi.xcloudwms.core.ui.components.PdaScanField
+import vn.delfi.xcloudwms.core.ui.components.PdaScanFieldSettings
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
 
@@ -66,17 +59,18 @@ fun ScannerTestScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Text(
-                text = "Ô nhận quét từ PDA",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            PdaCaptureField(
+            PdaScanField(
                 value = state.captureInput,
                 onValueChange = viewModel::updateCaptureInput,
-                softKeyboardEnabled = state.softKeyboardEnabled,
+                label = "Ô nhận quét từ PDA",
+                modifier = Modifier.fillMaxWidth(),
+                keepFocused = !state.softKeyboardEnabled,
                 onSubmit = viewModel::submitCaptureInput,
+                settingsOverride = PdaScanFieldSettings(
+                    blockSoftKeyboard = !state.softKeyboardEnabled,
+                    submitMode = ScannerSubmitMode.ENTER,
+                    allowManualInputFallback = state.softKeyboardEnabled,
+                ),
             )
 
             Row(
@@ -292,81 +286,4 @@ fun ScannerTestScreen(
             }
         }
     }
-}
-
-@Composable
-private fun PdaCaptureField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    softKeyboardEnabled: Boolean,
-    onSubmit: () -> Unit,
-) {
-    val latestValue = rememberUpdatedState(value)
-    val latestOnValueChange = rememberUpdatedState(onValueChange)
-    val latestOnSubmit = rememberUpdatedState(onSubmit)
-    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
-    val hintColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-
-    AndroidView(
-        modifier = Modifier.fillMaxWidth(),
-        factory = { context ->
-            EditText(context).apply {
-                hint = "Chạm vào đây để nhận mã quét"
-                setSingleLine(true)
-                imeOptions = EditorInfo.IME_ACTION_DONE
-                inputType = InputType.TYPE_CLASS_TEXT
-                setTextColor(textColor)
-                setHintTextColor(hintColor)
-                setPadding(32, 28, 32, 28)
-                showSoftInputOnFocus = softKeyboardEnabled
-                doAfterTextChanged { editable ->
-                    val newValue = editable?.toString().orEmpty()
-                    if (newValue != latestValue.value) {
-                        latestOnValueChange.value(newValue)
-                    }
-                }
-                setOnEditorActionListener { _, actionId, event ->
-                    val isSubmitAction = actionId == EditorInfo.IME_ACTION_DONE
-                    val isEnterKey =
-                        event?.action == KeyEvent.ACTION_DOWN &&
-                            (
-                                event.keyCode == KeyEvent.KEYCODE_ENTER ||
-                                    event.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
-                            )
-                    val isTabKey =
-                        event?.action == KeyEvent.ACTION_DOWN &&
-                            event.keyCode == KeyEvent.KEYCODE_TAB
-
-                    if (isSubmitAction || isEnterKey || isTabKey) {
-                        latestOnSubmit.value()
-                        post { requestFocus() }
-                        true
-                    } else {
-                        false
-                    }
-                }
-                if (!softKeyboardEnabled) {
-                    post { requestFocus() }
-                }
-            }
-        },
-        update = { editText ->
-            editText.showSoftInputOnFocus = softKeyboardEnabled
-            if (editText.text.toString() != value) {
-                editText.setText(value)
-                editText.setSelection(editText.text.length)
-            }
-            if (!softKeyboardEnabled) {
-                editText.hideKeyboard()
-                if (!editText.hasFocus()) {
-                    editText.post { editText.requestFocus() }
-                }
-            }
-        },
-    )
-}
-
-private fun EditText.hideKeyboard() {
-    val inputMethodManager = context.getSystemService(InputMethodManager::class.java) ?: return
-    inputMethodManager.hideSoftInputFromWindow(windowToken, 0)
 }

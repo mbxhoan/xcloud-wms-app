@@ -19,6 +19,8 @@ import vn.delfi.xcloudwms.core.network.RequestId
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
+import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.putaway.PaAddLineRequest
 import vn.delfi.xcloudwms.data.putaway.PaOfflineCache
 import vn.delfi.xcloudwms.data.putaway.PutawayLineValidator
@@ -34,6 +36,7 @@ class PutawayViewModel(
     private val putawayRepository: PutawayRepository,
     private val sessionRepository: SessionRepository,
     private val connectivityObserver: ConnectivityObserver,
+    private val appPreferences: AppPreferences,
     private val offlineCache: PaOfflineCache,
     private val deviceId: String,
     private val logger: SafeLogger,
@@ -43,6 +46,7 @@ class PutawayViewModel(
 
     private var warehouseId: String? = null
     private var contextLoaded = false
+    private var scanSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER
 
     /** Request id idempotency cho lần submit hiện tại; giữ lại để retry cùng id khi lỗi tạm thời. */
     private var pendingSubmitOperationId: String? = null
@@ -54,6 +58,12 @@ class PutawayViewModel(
                     is ScanEvent.Success -> onScan(event.parsed.normalized)
                     is ScanEvent.Error -> setBanner(BannerTone.ERROR, event.message)
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            appPreferences.scannerSubmitMode.collect { mode ->
+                scanSubmitMode = mode
             }
         }
 
@@ -308,6 +318,15 @@ class PutawayViewModel(
         touchDraft()
     }
 
+    fun submitActiveScanInput() {
+        val code = uiState.value.scannedCode.trim()
+        if (code.isBlank()) {
+            setBanner(BannerTone.WARNING, "Vui lòng quét hoặc nhập mã trước.")
+            return
+        }
+        onScan(code)
+    }
+
     fun updateQty(value: String) {
         mutableUiState.update { it.copy(qtyText = value) }
         touchDraft()
@@ -334,7 +353,11 @@ class PutawayViewModel(
                     return
                 }
                 mutableUiState.update {
-                    it.copy(fromLocationId = location.id, activeScanField = PaScanField.CODE)
+                    it.copy(
+                        fromLocationId = location.id,
+                        activeScanField = PaScanField.CODE,
+                        scannedCode = "",
+                    )
                 }
             }
 
@@ -344,10 +367,19 @@ class PutawayViewModel(
                     setBanner(BannerTone.WARNING, "Không tìm thấy vị trí “$code” trong kho hiện tại.")
                     return
                 }
-                mutableUiState.update { it.copy(toLocationId = location.id) }
+                mutableUiState.update { it.copy(toLocationId = location.id, scannedCode = "") }
             }
 
-            PaScanField.CODE -> mutableUiState.update { it.copy(scannedCode = code) }
+            PaScanField.CODE -> mutableUiState.update {
+                it.copy(
+                    scannedCode = code,
+                    activeScanField = if (scanSubmitMode == ScannerSubmitMode.TAB) {
+                        PaScanField.TO_LOCATION
+                    } else {
+                        it.activeScanField
+                    },
+                )
+            }
         }
     }
 
@@ -724,6 +756,7 @@ class PutawayViewModel(
             putawayRepository: PutawayRepository,
             sessionRepository: SessionRepository,
             connectivityObserver: ConnectivityObserver,
+            appPreferences: AppPreferences,
             offlineCache: PaOfflineCache,
             deviceId: String,
             logger: SafeLogger,
@@ -734,6 +767,7 @@ class PutawayViewModel(
                     putawayRepository = putawayRepository,
                     sessionRepository = sessionRepository,
                     connectivityObserver = connectivityObserver,
+                    appPreferences = appPreferences,
                     offlineCache = offlineCache,
                     deviceId = deviceId,
                     logger = logger,

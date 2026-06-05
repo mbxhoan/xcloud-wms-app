@@ -14,6 +14,7 @@ import vn.delfi.xcloudwms.core.error.toAppError
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
 import vn.delfi.xcloudwms.core.storage.AppPreferences
@@ -36,8 +37,9 @@ class StockLookupViewModel(
     private var lastResult: StockLookupResult? = null
     private var lastQuery: String = ""
     private var currentWarehouseId: String? = null
+    private var scanSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER
 
-    /** Bấm nút "Tra cứu" là ý định trực tiếp → tra cứu dù "Tự động Enter / Tab" đang tắt. */
+    /** Bấm nút "Tra cứu" là ý định trực tiếp → tra cứu dù submit mode không phải ENTER. */
     private var forceLookupNextScan: Boolean = false
 
     init {
@@ -56,8 +58,9 @@ class StockLookupViewModel(
         }
 
         viewModelScope.launch {
-            appPreferences.autoSubmitScanInput.collect { enabled ->
-                mutableUiState.update { it.copy(autoSubmitScanInput = enabled) }
+            appPreferences.scannerSubmitMode.collect { mode ->
+                scanSubmitMode = mode
+                mutableUiState.update { it.copy(autoSubmitScanInput = mode == ScannerSubmitMode.ENTER) }
             }
         }
 
@@ -99,7 +102,7 @@ class StockLookupViewModel(
     /**
      * Nhận mã quét hoàn chỉnh từ pipeline: đổ FULL mã vào ô (ghi đè ký tự lẻ wedge để lọt và
      * mã trước đó) để không dồn rác và để tra cứu liên tục không cần chạm màn. Tự tra cứu khi
-     * "Tự động Enter / Tab" bật hoặc khi người dùng vừa bấm nút "Tra cứu".
+     * submit mode là ENTER hoặc khi người dùng vừa bấm nút "Tra cứu".
      */
     private fun handleIncomingScan(rawCode: String) {
         val normalized = rawCode.trim()
@@ -107,7 +110,7 @@ class StockLookupViewModel(
             forceLookupNextScan = false
             return
         }
-        val shouldLookup = uiState.value.autoSubmitScanInput || forceLookupNextScan
+        val shouldLookup = scanSubmitMode == ScannerSubmitMode.ENTER || forceLookupNextScan
         forceLookupNextScan = false
         mutableUiState.update { it.copy(manualCode = normalized) }
         if (shouldLookup) {

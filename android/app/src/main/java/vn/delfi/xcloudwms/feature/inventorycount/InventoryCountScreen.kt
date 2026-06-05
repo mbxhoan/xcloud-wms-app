@@ -53,8 +53,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
+import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
-import vn.delfi.xcloudwms.core.ui.components.alwaysFocusedScanInput
 import vn.delfi.xcloudwms.domain.model.IcLine
 import vn.delfi.xcloudwms.domain.model.IcTrackingType
 
@@ -327,14 +327,15 @@ private fun ActiveLineCard(state: InventoryCountUiState, viewModel: InventoryCou
             )
         }
 
-        OutlinedTextField(
+        PdaScanField(
             value = state.scannedCode,
             onValueChange = viewModel::updateScannedCode,
-            modifier = Modifier
-                .fillMaxWidth()
-                .alwaysFocusedScanInput(keepFocused = false),
-            singleLine = true,
-            label = { Text("Mã quét (serial / lô / sản phẩm)") },
+            label = "Mã quét (serial / lô / sản phẩm)",
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.canScan,
+            keepFocused = false,
+            focusKey = "${state.activeLineId}:${state.selectedLocationId}:${state.processingLineId ?: "-"}",
+            onSubmit = viewModel::submitScannedCode,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(

@@ -18,6 +18,26 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-04 21:08 — Native PDA scan input behavior
+
+- Prompt summary: Fix native Android PDA scan input behavior theo `app/docs/13_update_reader.md`: mọi ô quét mã phải dùng scan-target đúng kiểu PDA, chặn soft keyboard mặc định, thêm `ScannerSubmitMode` `ENTER/TAB/NONE`, và nối lại các màn Stock Lookup/Scanner Test/PA/GI/GR/IC theo settings mới.
+- Ticket/Issue ID: (none)
+- Scope: `app/android + app/prompts + workspace docs` - chỉ sửa native scan input/settings/UI behavior; không đổi DB/RPC/API/status contract, không sửa `scanner/`, `webapp/`, `supabase/`.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/{scanner/ScannerSubmitMode.kt,storage/AppPreferences.kt,ui/components/PdaScanField.kt,navigation/AppNavHost.kt}`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/XcloudWmsApp.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/settings/{AppSettingsScreen,AppSettingsViewModel}.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/{stocklookup/goodsreceipt/goodsissue/inventorycount/putaway/scannertest}/*Screen.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/{stocklookup/goodsreceipt/goodsissue/inventorycount/putaway}/*ViewModel.kt`
+  - `app/prompts/prompt_map.md`, `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅
+- Commit message: `fix(app-scan): enforce native pda scan field behavior`
+- Notes/Risks:
+  - `PdaScanField` dùng `AppCompatEditText` qua `AndroidView` để khóa soft keyboard ở cấp field, vẫn cho wedge/broadcast pipeline giữ focus ổn định.
+  - Window-level block IME giờ chỉ bật khi `blockSoftKeyboard=true` và `allowManualInputFallback=false`; bật fallback sẽ cho nhập tay lại để test trên emulator/dev.
+  - Với `submitMode=TAB`, các màn có một ô quét duy nhất sẽ chỉ điền mã vào ô; hành vi "move next" hiện được áp dụng rõ ràng nhất ở flow Putaway (`CODE -> TO_LOCATION`).
+
 ## 2026-06-04 15:00 — Android QA, build & release workflow
 
 - Prompt summary: Chuẩn hóa test/build/release cho native Android scanner app: verify Gradle tasks, docs ký release không commit keystore, docs build variants, template QA execution report, smoke test script/checklist, versioning policy, rollback policy. Verify bằng `./gradlew test/assembleDebug/assembleRelease`.

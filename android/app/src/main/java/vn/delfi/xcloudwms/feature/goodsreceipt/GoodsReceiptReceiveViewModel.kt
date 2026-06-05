@@ -18,6 +18,7 @@ import vn.delfi.xcloudwms.core.network.ConnectivityObserver
 import vn.delfi.xcloudwms.core.scanner.ScanEvent
 import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
+import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.gr.GoodsReceiptErrorMapper
 import vn.delfi.xcloudwms.data.gr.GoodsReceiptRepository
@@ -41,6 +42,7 @@ class GoodsReceiptReceiveViewModel(
     private var isScreenActive: Boolean = false
     private var forceProcessNextScan: Boolean = false
     private var sessionDetailSequence: Long = 0L
+    private var scanSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER
 
     /** Serial đã nhận trong phiên hiện tại (key = lineId|serial) để chặn quét trùng tại chỗ. */
     private val sessionSerials = HashSet<String>()
@@ -64,8 +66,9 @@ class GoodsReceiptReceiveViewModel(
             }
         }
         viewModelScope.launch {
-            appPreferences.autoSubmitScanInput.collect { enabled ->
-                mutableUiState.update { it.copy(autoSubmitScanInput = enabled) }
+            appPreferences.scannerSubmitMode.collect { mode ->
+                scanSubmitMode = mode
+                mutableUiState.update { it.copy(autoSubmitScanInput = mode == ScannerSubmitMode.ENTER) }
             }
         }
     }
@@ -367,7 +370,7 @@ class GoodsReceiptReceiveViewModel(
     }
 
     private fun handleIncomingScan(normalizedCode: String) {
-        val shouldProcessImmediately = uiState.value.autoSubmitScanInput || forceProcessNextScan
+        val shouldProcessImmediately = scanSubmitMode == ScannerSubmitMode.ENTER || forceProcessNextScan
         forceProcessNextScan = false
         mutableUiState.update { it.copy(scannedCode = normalizedCode, banner = null) }
         if (shouldProcessImmediately) {
