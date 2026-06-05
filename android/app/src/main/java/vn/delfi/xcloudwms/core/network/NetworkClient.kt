@@ -177,27 +177,33 @@ class DefaultNetworkClient(
             )
         }
 
+        // Validate key bằng query bảng thật, KHÔNG dùng `/rest/v1/` (OpenAPI root).
+        // Key dạng `sb_publishable_...` được Supabase gateway chấp nhận trên PostgREST query
+        // bình thường nhưng bị từ chối ở OpenAPI root → khiến key hợp lệ vẫn báo "không hợp lệ".
+        // Parity với scanner PWA `testSupabaseConnection` (query `tenants` limit 0).
         val keyValidationResponse = execute(
             NetworkRequest(
                 connectionConfig = connectionConfig,
-                path = "/rest/v1/",
-                headers = mapOf("Accept" to "application/openapi+json"),
+                path = "/rest/v1/tenants",
+                queryParams = mapOf("select" to "id", "limit" to "0"),
                 useAnonAuthorization = true,
             ),
         )
 
         return when (keyValidationResponse) {
             is NetworkResult.Success<*> -> {
-                val networkResponse = keyValidationResponse.data as NetworkResponse
-                if (networkResponse.statusCode in HTTP_OK..HTTP_MULTIPLE_CHOICES) {
-                    NetworkResult.Success(Unit)
+                val statusCode = (keyValidationResponse.data as NetworkResponse).statusCode
+                // Chỉ 401/403 = key bị gateway từ chối. 2xx = OK; 404/400/406 = gateway đã nhận
+                // key (qua được auth, chỉ là bảng/RLS) nên vẫn coi key hợp lệ + kết nối được.
+                if (statusCode == HTTP_UNAUTHORIZED || statusCode == HTTP_FORBIDDEN) {
+                    NetworkResult.Failure(
+                        AppError(
+                            code = "CONNECTION_KEY_INVALID",
+                            message = "Khóa truy cập công khai không hợp lệ hoặc không đủ quyền truy cập.",
+                        ),
+                    )
                 } else {
-                        NetworkResult.Failure(
-                            AppError(
-                                code = "CONNECTION_KEY_INVALID",
-                                message = "Khóa truy cập công khai không hợp lệ hoặc không đủ quyền truy cập.",
-                            ),
-                        )
+                    NetworkResult.Success(Unit)
                 }
             }
 
@@ -257,5 +263,7 @@ class DefaultNetworkClient(
         const val HTTP_OK = 200
         const val HTTP_MULTIPLE_CHOICES = 299
         const val HTTP_BAD_REQUEST = 400
+        const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
     }
 }
