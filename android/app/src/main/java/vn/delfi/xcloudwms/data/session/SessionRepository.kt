@@ -110,6 +110,21 @@ class DefaultSessionRepository(
             onSuccess = { authContext ->
                 resolveAuthenticatedSession(authContext).map { userSession ->
                     mutableSession.value = userSession
+                    val deviceLicense = userSession.deviceLicense
+                    if (deviceLicense != null && deviceLicense.reasonCode != "DISABLED") {
+                        deviceLicenseRepository.syncDeviceProfile(authContext.userId)
+                            .onFailure { throwable ->
+                                logger.error("SessionRepository", "Không thể đồng bộ hồ sơ thiết bị native", throwable)
+                            }
+                    }
+                    deviceLicenseRepository.recordLoginHistory(
+                        userId = authContext.userId,
+                        status = if (deviceLicense?.canOperate == false) "FAILED" else "SUCCESS",
+                        errorCode = deviceLicense?.takeIf { !it.canOperate }?.reasonCode,
+                        errorMessage = deviceLicense?.takeIf { !it.canOperate }?.message,
+                    ).onFailure { throwable ->
+                        logger.error("SessionRepository", "Không thể ghi lịch sử đăng nhập native", throwable)
+                    }
                     logger.info(
                         "SessionRepository",
                         "Đăng nhập thành công cho user=${authContext.userId} với trạng thái ${userSession.status.name}",
@@ -124,6 +139,15 @@ class DefaultSessionRepository(
 
     override suspend fun signOut() {
         val connectionConfig = authRepository.getConnectionConfig()
+        val currentSession = mutableSession.value
+        currentSession.userId?.let { userId ->
+            deviceLicenseRepository.recordLoginHistory(
+                userId = userId,
+                status = "LOGGED_OUT",
+            ).onFailure { throwable ->
+                logger.error("SessionRepository", "Không thể ghi lịch sử đăng xuất native", throwable)
+            }
+        }
         authRepository.signOut()
         mutableSession.value = emptySession(connectionConfig = connectionConfig)
         logger.info("SessionRepository", "Đã xóa phiên đăng nhập cục bộ")

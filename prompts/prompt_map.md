@@ -18,6 +18,32 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
 
 ---
 
+## 2026-06-05 08:41 — Native hardware telemetry for login history and license admin
+
+- Prompt summary: Mở rộng hệ thống để khi đăng nhập bằng native Android scanner có thể ghi nhận nhiều định danh phần cứng hơn trong login history và phần license, như serial number, IMEI, MAC, tên thiết bị, model, hệ điều hành và metadata phục vụ thống kê; Scanner PWA giữ nguyên payload hiện tại.
+- Ticket/Issue ID: (none)
+- Scope: `app/android + shared backend/webapp/docs` - native app thêm thu thập structured device profile, sync vào `device_licenses` và ghi `login_history`; backend/webapp mở rộng schema/UI backward-compatible để hiển thị metadata này. Không đổi contract cũ của Scanner PWA.
+- Main files changed:
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/device/{DeviceLicenseRepository.kt,NativeDeviceProfileCollector.kt}`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/data/session/SessionRepository.kt`
+  - `supabase/migrations/20260605113000_add_native_device_telemetry.sql`
+  - `webapp/src/lib/device-telemetry.ts`
+  - `webapp/src/features/master-data/users/{login-history-api.ts,LoginHistoryPage.tsx,LoginHistorySection.tsx}`
+  - `webapp/src/features/system/licenses/{device-license-api.ts,LicensesPage.tsx}`
+  - `docs/{02-shared-db-contract.md,feature-license-management.md,commit_prompt_map.md}`
+  - `app/prompts/prompt_map.md`
+- Tests run:
+  - `cd webapp && yarn lint` ✅
+  - `cd webapp && yarn build` ✅
+  - `cd app/android && ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug` ✅
+  - `git -C webapp diff --check` ✅
+  - `git -C app diff --check` ✅
+- Commit message: `feat(scanner-device): capture native hardware telemetry in login history and licenses`
+- Notes/Risks:
+  - Native app chỉ gửi được những định danh phần cứng mà Android + permission hiện cho phép; IMEI/serial/MAC thật có thể vẫn bị null trên Android 10+.
+  - `device_metadata` mới là audit payload, không thay thế `device_id`/`device_fingerprint` trong flow license.
+  - PWA không cần thay đổi; native app sync thêm profile qua RPC mới `fn_scanner_sync_device_license_profile`.
+
 ## 2026-06-04 21:08 — Native PDA scan input behavior
 
 - Prompt summary: Fix native Android PDA scan input behavior theo `app/docs/13_update_reader.md`: mọi ô quét mã phải dùng scan-target đúng kiểu PDA, chặn soft keyboard mặc định, thêm `ScannerSubmitMode` `ENTER/TAB/NONE`, và nối lại các màn Stock Lookup/Scanner Test/PA/GI/GR/IC theo settings mới.

@@ -1,16 +1,12 @@
 package vn.delfi.xcloudwms.data.device
 
 import android.content.Context
-import android.content.res.Configuration
-import android.os.Build
-import android.provider.Settings
 import java.security.MessageDigest
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONTokener
-import vn.delfi.xcloudwms.BuildConfig
 import vn.delfi.xcloudwms.core.config.AppConfig
 import vn.delfi.xcloudwms.core.error.AppError
 import vn.delfi.xcloudwms.core.error.AppException
@@ -39,6 +35,14 @@ data class DeviceRegistrationSnapshot(
     val androidIdHash: String?,
     val vendorSerialHash: String?,
     val fingerprint: String,
+    val screenResolution: String,
+    val timezone: String,
+    val language: String,
+    val hardwareConcurrency: Int,
+    val deviceMemoryGb: Double?,
+    val userAgent: String,
+    val clientPlatform: String,
+    val metadata: JSONObject,
 )
 
 internal data class DeviceLicenseRpcPayload(
@@ -53,6 +57,15 @@ interface DeviceLicenseRepository {
     fun snapshot(): DeviceRegistrationSnapshot
 
     suspend fun verify(userId: String): Result<DeviceLicenseState>
+
+    suspend fun syncDeviceProfile(userId: String): Result<Unit>
+
+    suspend fun recordLoginHistory(
+        userId: String,
+        status: String,
+        errorCode: String? = null,
+        errorMessage: String? = null,
+    ): Result<Unit>
 }
 
 class DefaultDeviceLicenseRepository(
@@ -64,39 +77,12 @@ class DefaultDeviceLicenseRepository(
     private val offlineStore: OfflineStore,
     private val logger: SafeLogger,
 ) : DeviceLicenseRepository {
+    private val profileCollector = NativeDeviceProfileCollector(
+        context = context,
+        offlineStore = offlineStore,
+    )
 
-    override fun snapshot(): DeviceRegistrationSnapshot {
-        val manufacturer = normalizedValue(Build.MANUFACTURER, "Android")
-        val brand = normalizedValue(Build.BRAND, manufacturer)
-        val model = normalizedValue(Build.MODEL, "Unknown Model")
-        val deviceName = buildDeviceName(manufacturer = manufacturer, model = model)
-        val androidIdHash = readAndroidIdHash()
-        val vendorSerialHash: String? = null
-        val fingerprint = sha256Hex(
-            listOf(
-                manufacturer,
-                brand,
-                model,
-                androidIdHash.orEmpty(),
-                vendorSerialHash.orEmpty(),
-            ).joinToString("|"),
-        )
-
-        return DeviceRegistrationSnapshot(
-            installId = offlineStore.deviceInstallId(),
-            deviceName = deviceName,
-            deviceType = resolveDeviceType(),
-            manufacturer = manufacturer,
-            brand = brand,
-            model = model,
-            deviceOs = "Android",
-            deviceOsVersion = buildOsVersion(),
-            appVersion = BuildConfig.VERSION_NAME,
-            androidIdHash = androidIdHash,
-            vendorSerialHash = vendorSerialHash,
-            fingerprint = fingerprint,
-        )
-    }
+    override fun snapshot(): DeviceRegistrationSnapshot = profileCollector.collect()
 
     override suspend fun verify(userId: String): Result<DeviceLicenseState> {
         if (!appConfig.enableDeviceLicenseCheck) {
@@ -152,6 +138,120 @@ class DefaultDeviceLicenseRepository(
             )
         }.onFailure { throwable ->
             logger.error(TAG, "Kiểm tra trạng thái thiết bị thất bại", throwable)
+        }
+    }
+
+    override suspend fun syncDeviceProfile(userId: String): Result<Unit> {
+        if (!appConfig.enableDeviceLicenseCheck) {
+            return Result.success(Unit)
+        }
+
+        val connectionConfig = appPreferences.currentConnectionConfig()
+            ?: return failure(
+                code = "CONNECTION_REQUIRED",
+                message = "Chưa có cấu hình kết nối để đồng bộ hồ sơ thiết bị.",
+            )
+
+        val storedSession = secureSessionStorage.loadSession()
+            ?: return failure(
+                code = "SESSION_REQUIRED",
+                message = "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.",
+            )
+
+        val device = snapshot()
+        val request = NetworkRequest(
+            connectionConfig = connectionConfig,
+            path = DEVICE_LICENSE_PROFILE_RPC_PATH,
+            method = HttpMethod.POST,
+            authToken = storedSession.accessToken,
+            body = JSONObject()
+                .put("p_user_id", userId)
+                .put("p_device_id", device.installId)
+                .put("p_device_fingerprint", device.fingerprint)
+                .put("p_device_name", device.deviceName)
+                .put("p_device_type", device.deviceType)
+                .put("p_device_os", device.deviceOs)
+                .put("p_device_os_version", device.deviceOsVersion)
+                .put("p_device_model", device.model)
+                .put("p_client_platform", device.clientPlatform)
+                .put("p_device_metadata", device.metadata)
+                .toString(),
+        )
+
+        return withContext(Dispatchers.IO) {
+            when (val result = networkClient.execute(request)) {
+                is NetworkResult.Failure -> Result.failure(AppException(result.error))
+                is NetworkResult.Success<*> -> parseWriteResponse(
+                    response = result.data as NetworkResponse,
+                    fallbackCode = "DEVICE_PROFILE_SYNC_FAILED",
+                    fallbackMessage = "Không thể đồng bộ hồ sơ thiết bị.",
+                )
+            }
+        }
+    }
+
+    override suspend fun recordLoginHistory(
+        userId: String,
+        status: String,
+        errorCode: String?,
+        errorMessage: String?,
+    ): Result<Unit> {
+        val connectionConfig = appPreferences.currentConnectionConfig()
+            ?: return failure(
+                code = "CONNECTION_REQUIRED",
+                message = "Chưa có cấu hình kết nối để ghi lịch sử đăng nhập.",
+            )
+
+        val storedSession = secureSessionStorage.loadSession()
+            ?: return failure(
+                code = "SESSION_REQUIRED",
+                message = "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.",
+            )
+
+        val device = snapshot()
+        val request = NetworkRequest(
+            connectionConfig = connectionConfig,
+            path = LOGIN_HISTORY_TABLE_PATH,
+            method = HttpMethod.POST,
+            authToken = storedSession.accessToken,
+            headers = mapOf("Prefer" to "return=minimal"),
+            body = JSONObject()
+                .put("user_id", userId)
+                .put("status", status)
+                .put("login_app", "SCANNER")
+                .put("client_platform", device.clientPlatform)
+                .put("device_id", device.installId)
+                .put("device_name", device.deviceName)
+                .put("device_type", device.deviceType)
+                .put("device_os", device.deviceOs)
+                .put("device_os_version", device.deviceOsVersion)
+                .put("device_model", device.model)
+                .put("browser_name", "Scanner Native")
+                .put("browser_version", device.appVersion)
+                .put("user_agent", device.userAgent)
+                .put("app_version", device.appVersion)
+                .put("screen_resolution", device.screenResolution)
+                .put("timezone", device.timezone)
+                .put("language", device.language)
+                .put("is_mobile", true)
+                .put("is_pwa", false)
+                .put("hardware_concurrency", device.hardwareConcurrency)
+                .put("device_memory", device.deviceMemoryGb)
+                .put("device_metadata", device.metadata)
+                .put("error_code", errorCode)
+                .put("error_message", errorMessage)
+                .toString(),
+        )
+
+        return withContext(Dispatchers.IO) {
+            when (val result = networkClient.execute(request)) {
+                is NetworkResult.Failure -> Result.failure(AppException(result.error))
+                is NetworkResult.Success<*> -> parseWriteResponse(
+                    response = result.data as NetworkResponse,
+                    fallbackCode = "LOGIN_HISTORY_RECORD_FAILED",
+                    fallbackMessage = "Không thể ghi lịch sử đăng nhập.",
+                )
+            }
         }
     }
 
@@ -215,69 +315,34 @@ class DefaultDeviceLicenseRepository(
         return null
     }
 
-    private fun readAndroidIdHash(): String? {
-        val androidId = runCatching {
-            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-        }.getOrNull()?.trim().orEmpty()
-
-        if (androidId.isBlank() || androidId.equals("unknown", ignoreCase = true)) {
-            return null
+    private fun parseWriteResponse(
+        response: NetworkResponse,
+        fallbackCode: String,
+        fallbackMessage: String,
+    ): Result<Unit> {
+        if (response.statusCode == HTTP_UNAUTHORIZED || response.statusCode == HTTP_FORBIDDEN) {
+            return failure(
+                code = "SESSION_EXPIRED",
+                message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+            )
         }
 
-        return sha256Hex(androidId)
-    }
-
-    private fun buildDeviceName(
-        manufacturer: String,
-        model: String,
-    ): String {
-        val normalizedManufacturer = manufacturer.trim()
-        val normalizedModel = model.trim()
-        return if (
-            normalizedManufacturer.isBlank() ||
-            normalizedModel.startsWith(normalizedManufacturer, ignoreCase = true)
-        ) {
-            normalizedModel.ifBlank { "Android Device" }
-        } else {
-            "$normalizedManufacturer $normalizedModel".trim()
+        if (response.statusCode !in HTTP_OK..HTTP_MULTIPLE_CHOICES) {
+            return failure(
+                code = fallbackCode,
+                message = extractErrorMessage(response.body) ?: fallbackMessage,
+                retryable = response.statusCode >= HTTP_INTERNAL_SERVER_ERROR,
+            )
         }
+
+        return Result.success(Unit)
     }
 
-    private fun resolveDeviceType(): String {
-        val screenLayout = context.resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK
-        return if (screenLayout >= Configuration.SCREENLAYOUT_SIZE_LARGE) {
-            "TABLET"
-        } else {
-            "MOBILE"
-        }
-    }
-
-    private fun buildOsVersion(): String {
-        return buildString {
-            append(normalizedValue(Build.VERSION.RELEASE, "Unknown"))
-            append(" (API ")
-            append(Build.VERSION.SDK_INT)
-            append(")")
-        }
-    }
-
-    private fun normalizedValue(
-        value: String?,
-        fallback: String,
-    ): String {
-        val normalized = value?.trim().orEmpty()
-        return if (normalized.isBlank() || normalized.equals("unknown", ignoreCase = true)) {
-            fallback
-        } else {
-            normalized
-        }
-    }
-
-    private fun failure(
+    private fun <T> failure(
         code: String,
         message: String,
         retryable: Boolean = false,
-    ): Result<DeviceLicenseState> {
+    ): Result<T> {
         return Result.failure(
             AppException(
                 AppError(
@@ -292,6 +357,8 @@ class DefaultDeviceLicenseRepository(
     private companion object {
         const val TAG = "DeviceLicenseRepo"
         const val DEVICE_LICENSE_RPC_PATH = "/rest/v1/rpc/fn_scanner_check_device_license"
+        const val DEVICE_LICENSE_PROFILE_RPC_PATH = "/rest/v1/rpc/fn_scanner_sync_device_license_profile"
+        const val LOGIN_HISTORY_TABLE_PATH = "/rest/v1/login_history"
         const val HTTP_OK = 200
         const val HTTP_MULTIPLE_CHOICES = 299
         const val HTTP_UNAUTHORIZED = 401
