@@ -1,7 +1,10 @@
 package vn.delfi.xcloudwms.core.ui.components
 
 import android.graphics.drawable.GradientDrawable
+import android.os.SystemClock
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -32,7 +35,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.widget.doAfterTextChanged
 import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 
 @Stable
@@ -68,6 +70,7 @@ fun PdaScanField(
     val latestEnabled by rememberUpdatedState(enabled)
     val latestSettings by rememberUpdatedState(settings)
     val fieldRef = remember { mutableStateOf<AppCompatEditText?>(null) }
+    val watcherRef = remember { mutableStateOf<ScanReplaceWatcher?>(null) }
     val density = LocalDensity.current
 
     LaunchedEffect(enabled, keepFocused, focusKey, settings, fieldRef.value) {
@@ -149,12 +152,20 @@ fun PdaScanField(
                             strokeWidth = strokeWidth,
                             focusedStrokeWidth = focusedStrokeWidth,
                         )
-                        doAfterTextChanged { editable ->
-                            val newValue = editable?.toString().orEmpty()
-                            if (newValue != latestValue) {
-                                latestOnValueChange(newValue)
-                            }
-                        }
+                        // Ô quét là "scan target": mỗi lần quét chỉ giữ mã vừa quét. PDA wedge gõ
+                        // ký tự thẳng vào field; nếu mã trước còn trong ô (race với clear async) thì
+                        // mã sau sẽ bị nối đuôi. Watcher tự cắt bỏ mã cũ khi một lần quét mới bắt đầu.
+                        val scanWatcher = ScanReplaceWatcher(
+                            field = this,
+                            isScanTargetMode = { !latestSettings.softKeyboardEnabled },
+                            onValue = { newValue ->
+                                if (newValue != latestValue) {
+                                    latestOnValueChange(newValue)
+                                }
+                            },
+                        )
+                        watcherRef.value = scanWatcher
+                        addTextChangedListener(scanWatcher)
                         setOnFocusChangeListener { view, hasFocus ->
                             updateBorder(
                                 hasFocus = hasFocus,
@@ -243,8 +254,12 @@ fun PdaScanField(
                         focusedStrokeWidth = focusedStrokeWidth,
                     )
                     if (editText.text?.toString().orEmpty() != value) {
+                        val watcher = watcherRef.value
+                        watcher?.selfEdit = true
                         editText.setText(value)
                         editText.setSelection(editText.text?.length ?: 0)
+                        watcher?.selfEdit = false
+                        watcher?.syncProgrammatic(value)
                     }
                     if (!settings.softKeyboardEnabled && editText.hasFocus()) {
                         editText.hideKeyboard()
@@ -285,6 +300,70 @@ fun PdaScanField(
 
 private val PdaScanFieldSettings.softKeyboardEnabled: Boolean
     get() = !blockSoftKeyboard || allowManualInputFallback
+
+/** Khoảng nghỉ (ms) coi như bắt đầu một lần quét mới khi không có tín hiệu commit khác. */
+private const val NEW_SCAN_RESET_GAP_MS = 250L
+
+/**
+ * TextWatcher cho ô quét ở chế độ scan-target (chặn bàn phím mềm): đảm bảo mỗi lần quét ô chỉ giữ
+ * mã vừa quét, không nối vào mã trước.
+ *
+ * PDA keyboard-wedge gõ ký tự thẳng vào field. Nếu mã trước vẫn còn (clear async chưa kịp, hoặc màn
+ * giữ value) thì ký tự của mã sau sẽ nối đuôi → "mã1mã2". Khi một lần quét MỚI bắt đầu (sau commit
+ * của lần trước, hoặc sau khoảng nghỉ [NEW_SCAN_RESET_GAP_MS]) mà text = mã_cũ + phần_mới, watcher
+ * cắt bỏ phần mã cũ để chỉ còn mã mới. Không áp dụng khi đang ở chế độ nhập tay (bàn phím mềm).
+ */
+private class ScanReplaceWatcher(
+    private val field: AppCompatEditText,
+    private val isScanTargetMode: () -> Boolean,
+    private val onValue: (String) -> Unit,
+) : TextWatcher {
+    /** Bật khi code chủ động set text (VM-driven) để watcher bỏ qua lần đổi đó. */
+    var selfEdit: Boolean = false
+
+    private var lastText: String = ""
+    private var committed: Boolean = false
+    private var lastChangeAt: Long = 0L
+
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+
+    override fun afterTextChanged(s: Editable?) {
+        if (selfEdit) return
+
+        val now = SystemClock.uptimeMillis()
+        val gap = now - lastChangeAt
+        lastChangeAt = now
+
+        var text = s?.toString().orEmpty()
+        val startsNewScan = committed || gap >= NEW_SCAN_RESET_GAP_MS
+        if (
+            isScanTargetMode() &&
+            startsNewScan &&
+            lastText.isNotEmpty() &&
+            text.length > lastText.length &&
+            text.startsWith(lastText)
+        ) {
+            // Mã mới đang bị nối vào mã cũ → giữ lại đúng phần vừa quét.
+            text = text.substring(lastText.length)
+            selfEdit = true
+            field.setText(text)
+            field.setSelection(text.length)
+            selfEdit = false
+        }
+
+        committed = false
+        lastText = text
+        onValue(text)
+    }
+
+    /** Code chủ động set giá trị (full mã từ pipeline hoặc clear) → coi là một lần quét đã hoàn tất. */
+    fun syncProgrammatic(value: String) {
+        lastText = value
+        committed = true
+        lastChangeAt = SystemClock.uptimeMillis()
+    }
+}
 
 private fun shouldHandleSubmit(
     actionId: Int,
