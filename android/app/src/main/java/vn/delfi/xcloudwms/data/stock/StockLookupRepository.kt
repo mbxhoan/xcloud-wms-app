@@ -13,7 +13,10 @@ import vn.delfi.xcloudwms.core.network.NetworkResponse
 import vn.delfi.xcloudwms.core.network.NetworkResult
 import vn.delfi.xcloudwms.core.security.SecureSessionStorage
 import vn.delfi.xcloudwms.core.storage.AppPreferences
+import vn.delfi.xcloudwms.domain.model.StockActiveLpn
+import vn.delfi.xcloudwms.domain.model.StockEvent
 import vn.delfi.xcloudwms.domain.model.StockLookupResult
+import vn.delfi.xcloudwms.domain.model.StockLpnContent
 import vn.delfi.xcloudwms.domain.model.StockMatch
 import vn.delfi.xcloudwms.domain.model.StockRow
 import vn.delfi.xcloudwms.domain.model.StockSummary
@@ -119,18 +122,31 @@ class DefaultStockLookupRepository(
 
 /**
  * Phân tích jsonb của `rpc_traceability_lookup`. PostgREST trả thẳng object jsonb (đôi khi bọc mảng
- * 1 phần tử) → chấp nhận cả hai. Chỉ đọc các trường cần cho màn tra cứu tồn (bỏ events/lpn phase này).
+ * 1 phần tử) → chấp nhận cả hai. Đọc đủ match/summary/current_rows/active_lpns/lpn_contents/events
+ * để dựng màn tra cứu parity scanner PWA.
  */
 private object StockLookupResponseParser {
     fun parse(rawBody: String?, fallbackQuery: String): StockLookupResult {
         val root = toObject(rawBody)
-            ?: return StockLookupResult(fallbackQuery, null, StockSummary(), emptyList(), emptyList())
+            ?: return StockLookupResult(
+                query = fallbackQuery,
+                match = null,
+                summary = StockSummary(),
+                rows = emptyList(),
+                activeLpns = emptyList(),
+                lpnContents = emptyList(),
+                events = emptyList(),
+                warnings = emptyList(),
+            )
 
         return StockLookupResult(
             query = root.optStringOrNull("query") ?: fallbackQuery,
             match = root.optJSONObject("match")?.takeUnless { root.isNull("match") }?.let(::parseMatch),
             summary = root.optJSONObject("summary")?.let(::parseSummary) ?: StockSummary(),
             rows = root.optJSONArray("current_rows").objects().map(::parseRow),
+            activeLpns = root.optJSONArray("active_lpns").objects().map(::parseActiveLpn),
+            lpnContents = root.optJSONArray("lpn_contents_preview").objects().map(::parseLpnContent),
+            events = root.optJSONArray("events").objects().mapNotNull(::parseEvent),
             warnings = root.optJSONArray("warnings").strings(),
         )
     }
@@ -145,6 +161,7 @@ private object StockLookupResponseParser {
         uomCode = obj.optStringOrNull("uom_code"),
         uomName = obj.optStringOrNull("uom_name"),
         status = obj.optStringOrNull("status"),
+        referenceCode = obj.optStringOrNull("reference_code"),
         lotNumber = obj.optStringOrNull("lot_number"),
         serialNumber = obj.optStringOrNull("serial_number"),
         lpnCode = obj.optStringOrNull("lpn_code"),
@@ -158,7 +175,56 @@ private object StockLookupResponseParser {
         warehouseCount = obj.optInt("warehouse_count", 0),
         locationCount = obj.optInt("location_count", 0),
         activeLpnCount = obj.optInt("active_lpn_count", 0),
+        eventCount = obj.optInt("event_count", 0),
     )
+
+    private fun parseActiveLpn(obj: JSONObject): StockActiveLpn = StockActiveLpn(
+        lpnCode = obj.optStringOrNull("lpn_code").orEmpty(),
+        status = obj.optStringOrNull("status"),
+        isSealed = obj.optBooleanLoose("is_sealed"),
+        warehouseCode = obj.optStringOrNull("warehouse_code"),
+        warehouseName = obj.optStringOrNull("warehouse_name"),
+        locationCode = obj.optStringOrNull("location_code"),
+        locationName = obj.optStringOrNull("location_name"),
+        packedQtyBase = obj.optDouble("packed_qty_base", 0.0),
+        contentsCount = obj.optInt("contents_count", 0),
+    )
+
+    private fun parseLpnContent(obj: JSONObject): StockLpnContent = StockLpnContent(
+        productCode = obj.optStringOrNull("product_code"),
+        productName = obj.optStringOrNull("product_name"),
+        trackingType = obj.optStringOrNull("tracking_type"),
+        lotNumber = obj.optStringOrNull("lot_number"),
+        serialNumber = obj.optStringOrNull("serial_number"),
+        qtyBase = obj.optDouble("qty_base", 0.0),
+        uomCode = obj.optStringOrNull("uom_code"),
+        uomName = obj.optStringOrNull("uom_name"),
+    )
+
+    private fun parseEvent(obj: JSONObject): StockEvent? {
+        val source = obj.optStringOrNull("source")?.uppercase()
+        if (source != "STOCK" && source != "LPN" && source != "IC") return null
+        val id = obj.optStringOrNull("id") ?: return null
+        val title = obj.optStringOrNull("title") ?: return null
+        return StockEvent(
+            id = id,
+            source = source,
+            time = obj.optStringOrNull("time"),
+            title = title,
+            subtitle = obj.optStringOrNull("subtitle"),
+            quantityDelta = if (obj.isNull("quantity_delta")) null else obj.optDouble("quantity_delta").takeIf { !it.isNaN() },
+            quantityText = obj.optStringOrNull("quantity_text"),
+            referenceCode = obj.optStringOrNull("reference_code"),
+            actorName = obj.optStringOrNull("actor_name"),
+            partnerName = obj.optStringOrNull("partner_name"),
+            lpnCode = obj.optStringOrNull("lpn_code"),
+            locationCode = obj.optStringOrNull("location_code"),
+            fromLocationCode = obj.optStringOrNull("from_location_code"),
+            toLocationCode = obj.optStringOrNull("to_location_code"),
+            reasonNote = obj.optStringOrNull("reason_note"),
+            notes = obj.optStringOrNull("notes"),
+        )
+    }
 
     private fun parseRow(obj: JSONObject): StockRow = StockRow(
         warehouseId = obj.optIdString("warehouse_id"),
@@ -189,6 +255,15 @@ private object StockLookupResponseParser {
     private fun JSONObject.optStringOrNull(key: String): String? {
         if (isNull(key)) return null
         return optString(key).takeIf { it.isNotBlank() }
+    }
+
+    private fun JSONObject.optBooleanLoose(key: String): Boolean {
+        return when (val value = opt(key)) {
+            is Boolean -> value
+            is Number -> value.toInt() == 1
+            is String -> value.equals("true", ignoreCase = true) || value == "1"
+            else -> false
+        }
     }
 
     private fun JSONObject.optIdString(key: String): String? {

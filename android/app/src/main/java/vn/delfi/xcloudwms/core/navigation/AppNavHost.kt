@@ -331,6 +331,7 @@ fun AppNavHost(appContainer: AppContainer) {
                 factory = StockLookupViewModel.factory(
                     scannerManager = appContainer.scannerManager,
                     stockLookupRepository = appContainer.stockLookupRepository,
+                    lookupHistoryStore = appContainer.lookupHistoryStore,
                     sessionRepository = appContainer.sessionRepository,
                     connectivityObserver = appContainer.connectivityObserver,
                     appPreferences = appContainer.appPreferences,

@@ -19,24 +19,22 @@ import vn.delfi.xcloudwms.core.scanner.ScannerManager
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
 import vn.delfi.xcloudwms.core.storage.AppPreferences
 import vn.delfi.xcloudwms.data.session.SessionRepository
+import vn.delfi.xcloudwms.data.stock.LookupHistoryStore
 import vn.delfi.xcloudwms.data.stock.StockLookupRepository
-import vn.delfi.xcloudwms.data.stock.StockRowFilter
-import vn.delfi.xcloudwms.domain.model.StockLookupResult
 
 class StockLookupViewModel(
     private val scannerManager: ScannerManager,
     private val stockLookupRepository: StockLookupRepository,
+    private val lookupHistoryStore: LookupHistoryStore,
     private val sessionRepository: SessionRepository,
     private val connectivityObserver: ConnectivityObserver,
     private val appPreferences: AppPreferences,
     private val logger: SafeLogger,
 ) : ViewModel() {
-    private val mutableUiState = MutableStateFlow(StockLookupUiState())
+    private val mutableUiState = MutableStateFlow(StockLookupUiState(history = lookupHistoryStore.load()))
     val uiState: StateFlow<StockLookupUiState> = mutableUiState.asStateFlow()
 
-    private var lastResult: StockLookupResult? = null
     private var lastQuery: String = ""
-    private var currentWarehouseId: String? = null
     private var scanSubmitMode: ScannerSubmitMode = ScannerSubmitMode.ENTER
 
     /** Bấm nút "Tra cứu" là ý định trực tiếp → tra cứu dù submit mode không phải ENTER. */
@@ -66,11 +64,9 @@ class StockLookupViewModel(
 
         viewModelScope.launch {
             sessionRepository.session.collect { session ->
-                currentWarehouseId = session.currentWarehouse?.id
                 mutableUiState.update {
                     it.copy(currentWarehouseLabel = session.currentWarehouse?.label ?: "Chưa chọn")
                 }
-                recomputeRows()
             }
         }
 
@@ -99,10 +95,23 @@ class StockLookupViewModel(
         scannerManager.submitManualScan(uiState.value.manualCode)
     }
 
+    /** Bấm vào một mục lịch sử → tra cứu lại mã đó. */
+    fun lookupHistory(code: String) {
+        runLookup(code)
+    }
+
+    fun dismissResult() {
+        mutableUiState.update { it.copy(detailResult = null, notFoundCode = null) }
+    }
+
+    fun dismissError() {
+        mutableUiState.update { it.copy(errorMessage = null) }
+    }
+
     /**
-     * Nhận mã quét hoàn chỉnh từ pipeline: đổ FULL mã vào ô (ghi đè ký tự lẻ wedge để lọt và
-     * mã trước đó) để không dồn rác và để tra cứu liên tục không cần chạm màn. Tự tra cứu khi
-     * submit mode là ENTER hoặc khi người dùng vừa bấm nút "Tra cứu".
+     * Nhận mã quét hoàn chỉnh từ pipeline: đổ FULL mã vào ô (ghi đè ký tự lẻ wedge để lọt và mã
+     * trước đó) để không dồn rác và để tra cứu liên tục không cần chạm màn. Tự tra cứu khi submit
+     * mode là ENTER hoặc khi người dùng vừa bấm nút "Tra cứu".
      */
     private fun handleIncomingScan(rawCode: String) {
         val normalized = rawCode.trim()
@@ -124,42 +133,50 @@ class StockLookupViewModel(
         }
     }
 
-    fun toggleShowAllWarehouses(showAll: Boolean) {
-        mutableUiState.update { it.copy(showAllWarehouses = showAll) }
-        recomputeRows()
-    }
-
     private fun runLookup(code: String) {
         val normalized = code.trim()
-        if (normalized.isBlank()) {
+        if (normalized.isBlank() || uiState.value.isLoading) {
             return
         }
         lastQuery = normalized
         mutableUiState.update {
-            it.copy(isLoading = true, query = normalized, errorMessage = null, errorRetryable = false)
+            it.copy(
+                isLoading = true,
+                query = normalized,
+                busyCode = normalized,
+                errorMessage = null,
+                errorRetryable = false,
+            )
         }
 
         viewModelScope.launch {
             stockLookupRepository.lookup(normalized)
                 .onSuccess { result ->
-                    lastResult = result
-                    applyResult(result)
+                    val history = if (result.match != null) lookupHistoryStore.push(result) else uiState.value.history
+                    mutableUiState.update {
+                        it.copy(
+                            isLoading = false,
+                            busyCode = null,
+                            // Lookup xong → trả ô về trống để sẵn sàng quét mã kế tiếp.
+                            manualCode = "",
+                            history = history,
+                            detailResult = result.takeIf { r -> r.match != null },
+                            notFoundCode = if (result.match == null) normalized else null,
+                            errorMessage = null,
+                            errorRetryable = false,
+                        )
+                    }
                     logger.debug(TAG, "Tra cứu '$normalized' → match=${result.match?.kind} rows=${result.rows.size}")
                 }
                 .onFailure { throwable ->
                     val appError = throwable.toAppError()
-                    lastResult = null
                     mutableUiState.update {
                         it.copy(
                             isLoading = false,
-                            // Lookup xong → trả ô về trống để sẵn sàng quét mã kế tiếp.
+                            busyCode = null,
                             manualCode = "",
-                            match = null,
-                            summary = null,
-                            rows = emptyList(),
-                            totalRowCount = 0,
-                            hasResult = false,
-                            isEmptyResult = false,
+                            detailResult = null,
+                            notFoundCode = null,
                             errorMessage = appError.message,
                             errorRetryable = appError.retryable,
                         )
@@ -169,45 +186,13 @@ class StockLookupViewModel(
         }
     }
 
-    private fun applyResult(result: StockLookupResult) {
-        val displayed = StockRowFilter.forWarehouse(
-            rows = result.rows,
-            currentWarehouseId = currentWarehouseId,
-            showAll = uiState.value.showAllWarehouses,
-        )
-        mutableUiState.update {
-            it.copy(
-                isLoading = false,
-                // Lookup xong → trả ô về trống để sẵn sàng quét mã kế tiếp.
-                manualCode = "",
-                match = result.match,
-                summary = result.summary,
-                rows = displayed,
-                totalRowCount = result.rows.size,
-                hasResult = result.match != null,
-                isEmptyResult = result.match == null,
-                errorMessage = null,
-                errorRetryable = false,
-            )
-        }
-    }
-
-    private fun recomputeRows() {
-        val result = lastResult ?: return
-        val displayed = StockRowFilter.forWarehouse(
-            rows = result.rows,
-            currentWarehouseId = currentWarehouseId,
-            showAll = uiState.value.showAllWarehouses,
-        )
-        mutableUiState.update { it.copy(rows = displayed, totalRowCount = result.rows.size) }
-    }
-
     companion object {
         private const val TAG = "StockLookupViewModel"
 
         fun factory(
             scannerManager: ScannerManager,
             stockLookupRepository: StockLookupRepository,
+            lookupHistoryStore: LookupHistoryStore,
             sessionRepository: SessionRepository,
             connectivityObserver: ConnectivityObserver,
             appPreferences: AppPreferences,
@@ -217,6 +202,7 @@ class StockLookupViewModel(
                 StockLookupViewModel(
                     scannerManager = scannerManager,
                     stockLookupRepository = stockLookupRepository,
+                    lookupHistoryStore = lookupHistoryStore,
                     sessionRepository = sessionRepository,
                     connectivityObserver = connectivityObserver,
                     appPreferences = appPreferences,

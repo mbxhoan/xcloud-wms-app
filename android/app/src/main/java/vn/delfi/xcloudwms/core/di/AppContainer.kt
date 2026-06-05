@@ -37,6 +37,7 @@ import vn.delfi.xcloudwms.data.putaway.DefaultPutawayRepository
 import vn.delfi.xcloudwms.data.putaway.PaOfflineCache
 import vn.delfi.xcloudwms.data.putaway.PutawayRepository
 import vn.delfi.xcloudwms.data.stock.DefaultStockLookupRepository
+import vn.delfi.xcloudwms.data.stock.LookupHistoryStore
 import vn.delfi.xcloudwms.data.stock.StockLookupRepository
 
 interface AppContainer {
@@ -46,6 +47,7 @@ interface AppContainer {
     val scannerManager: ScannerManager
     val sessionRepository: SessionRepository
     val stockLookupRepository: StockLookupRepository
+    val lookupHistoryStore: LookupHistoryStore
     val putawayRepository: PutawayRepository
     val goodsIssueRepository: GoodsIssueRepository
     val goodsReceiptRepository: GoodsReceiptRepository
@@ -139,6 +141,8 @@ class DefaultAppContainer(
         secureSessionStorage = secureSessionStorage,
         logger = logger,
     )
+
+    override val lookupHistoryStore: LookupHistoryStore = LookupHistoryStore(offlineStore)
 
     override val putawayRepository: PutawayRepository = DefaultPutawayRepository(
         networkClient = networkClient,
