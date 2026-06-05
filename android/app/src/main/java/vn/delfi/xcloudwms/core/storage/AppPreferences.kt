@@ -26,6 +26,8 @@ class AppPreferences(
     private val mutableBlockSoftKeyboard = MutableStateFlow(loadBlockSoftKeyboard())
     private val mutableScannerSubmitMode = MutableStateFlow(loadScannerSubmitMode())
     private val mutableAllowManualInputFallback = MutableStateFlow(loadAllowManualInputFallback())
+    private val mutableAutoSync = MutableStateFlow(loadAutoSync())
+    private val mutableManualOffline = MutableStateFlow(loadManualOffline())
 
     /**
      * Bật/tắt việc chặn bàn phím ảo của thiết bị trong toàn app. Mặc định BẬT để tối ưu thao tác
@@ -43,6 +45,45 @@ class AppPreferences(
      * PDA production nên để TẮT để bám hành vi "scan target" đúng chuẩn.
      */
     val allowManualInputFallback: StateFlow<Boolean> = mutableAllowManualInputFallback.asStateFlow()
+
+    /**
+     * Tự động đồng bộ: khi BẬT, mỗi lần ghi nhận thao tác sẽ gửi lên server ngay. Khi TẮT, dữ liệu
+     * giữ ở draft local và đẩy lên khi người dùng bấm đồng bộ. Mặc định BẬT. Parity scanner PWA.
+     */
+    val autoSync: StateFlow<Boolean> = mutableAutoSync.asStateFlow()
+
+    /**
+     * Chế độ offline thủ công: khi BẬT, app coi như đang offline kể cả còn mạng — lưu mã quét cục bộ,
+     * đồng bộ thủ công khi có kết nối trở lại. Mặc định TẮT. Parity scanner PWA.
+     */
+    val manualOffline: StateFlow<Boolean> = mutableManualOffline.asStateFlow()
+
+    fun setAutoSync(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_AUTO_SYNC, enabled)
+            .apply()
+        mutableAutoSync.value = enabled
+    }
+
+    fun setManualOffline(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_MANUAL_OFFLINE, enabled)
+            .apply()
+        mutableManualOffline.value = enabled
+    }
+
+    /** Mật khẩu xác thực mở cấu hình kết nối. Mặc định [DEFAULT_CONFIG_PASSWORD] (`1337`), đổi được sau. */
+    fun getConfigPassword(): String {
+        return sharedPreferences.getString(KEY_CONFIG_PASSWORD, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_CONFIG_PASSWORD
+    }
+
+    fun setConfigPassword(password: String) {
+        sharedPreferences.edit()
+            .putString(KEY_CONFIG_PASSWORD, password)
+            .apply()
+    }
 
     fun setBlockSoftKeyboard(enabled: Boolean) {
         sharedPreferences.edit()
@@ -159,6 +200,14 @@ class AppPreferences(
         return sharedPreferences.getBoolean(KEY_ALLOW_MANUAL_INPUT_FALLBACK, false)
     }
 
+    private fun loadAutoSync(): Boolean {
+        return sharedPreferences.getBoolean(KEY_AUTO_SYNC, true)
+    }
+
+    private fun loadManualOffline(): Boolean {
+        return sharedPreferences.getBoolean(KEY_MANUAL_OFFLINE, false)
+    }
+
     private fun loadBroadcastScannerConfig(): BroadcastScannerConfig {
         return BroadcastScannerConfig(
             action = sharedPreferences.getString(KEY_BROADCAST_ACTION, "").orEmpty(),
@@ -181,5 +230,9 @@ class AppPreferences(
         const val KEY_SCANNER_SUBMIT_MODE = "scanner_submit_mode"
         const val KEY_ALLOW_MANUAL_INPUT_FALLBACK = "allow_manual_input_fallback"
         const val KEY_AUTO_SUBMIT_SCAN_INPUT = "auto_submit_scan_input"
+        const val KEY_AUTO_SYNC = "auto_sync"
+        const val KEY_MANUAL_OFFLINE = "manual_offline"
+        const val KEY_CONFIG_PASSWORD = "config_password"
+        const val DEFAULT_CONFIG_PASSWORD = "1337"
     }
 }

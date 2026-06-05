@@ -6,20 +6,31 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,9 +38,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import vn.delfi.xcloudwms.core.ui.components.ClearableOutlinedTextField
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.core.ui.components.XcloudScaffold
@@ -43,12 +60,34 @@ fun AppSettingsScreen(
     onOpenScannerTest: () -> Unit,
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val connState = viewModel.connConfigState.collectAsStateWithLifecycle().value
 
     XcloudScaffold(
         title = "Cài đặt",
         subtitle = "Gom cấu hình quét, trạng thái thiết bị và thông tin máy ra khỏi trang chủ để thao tác gọn hơn.",
         onBack = onBack,
     ) {
+        SectionCard(title = "Kết nối & đồng bộ") {
+            SettingSwitchRow(
+                title = "Chế độ Offline",
+                subtitle = "Lưu mã quét cục bộ khi mất/yếu mạng. Đồng bộ thủ công khi có kết nối trở lại.",
+                checked = state.manualOffline,
+                onCheckedChange = viewModel::setManualOffline,
+            )
+            SettingSwitchRow(
+                title = "Tự động đồng bộ",
+                subtitle = "Khi bật, mỗi lần quét sẽ ghi nhận lên server ngay. Khi tắt, dữ liệu chỉ lưu local và phải bấm \"Đồng bộ\" để gửi lên.",
+                checked = state.autoSync,
+                onCheckedChange = viewModel::setAutoSync,
+            )
+            SettingsActionRow(
+                icon = Icons.Filled.Dns,
+                title = "Cấu hình kết nối",
+                subtitle = "Hiện tại: ${state.connectionLabel}. Đổi địa chỉ/khóa Supabase và kiểm tra kết nối. Lưu cấu hình mới sẽ đăng xuất.",
+                onClick = viewModel::openConnConfig,
+            )
+        }
+
         SectionCard(title = "Cài đặt quét") {
             SettingSwitchRow(
                 title = "Ẩn bàn phím ảo",
@@ -131,6 +170,258 @@ fun AppSettingsScreen(
             Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(20.dp))
             Text("  Đăng xuất")
         }
+    }
+
+    if (connState.open) {
+        ConnectionConfigDialog(
+            state = connState,
+            onDismiss = viewModel::closeConnConfig,
+            onPasswordChange = viewModel::updateConnPassword,
+            onPasswordSubmit = viewModel::submitConnPassword,
+            onUrlChange = viewModel::updateConnUrl,
+            onKeyChange = viewModel::updateConnKey,
+            onToggleKeyVisible = viewModel::toggleConnKeyVisible,
+            onTest = viewModel::testConnConfig,
+            onSave = viewModel::saveConnConfig,
+        )
+    }
+}
+
+@Composable
+private fun ConnectionConfigDialog(
+    state: ConnConfigDialogState,
+    onDismiss: () -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onPasswordSubmit: () -> Unit,
+    onUrlChange: (String) -> Unit,
+    onKeyChange: (String) -> Unit,
+    onToggleKeyVisible: () -> Unit,
+    onTest: () -> Unit,
+    onSave: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(10.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Dns,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    Text(
+                        text = "Cấu hình kết nối",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+
+                if (state.phase == ConnConfigPhase.PASSWORD) {
+                    ConnPasswordPhase(
+                        state = state,
+                        onPasswordChange = onPasswordChange,
+                        onSubmit = onPasswordSubmit,
+                    )
+                } else {
+                    ConnConfigPhaseContent(
+                        state = state,
+                        onUrlChange = onUrlChange,
+                        onKeyChange = onKeyChange,
+                        onToggleKeyVisible = onToggleKeyVisible,
+                        onTest = onTest,
+                        onSave = onSave,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConnPasswordPhase(
+    state: ConnConfigDialogState,
+    onPasswordChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "Nhập mật khẩu xác thực để mở cấu hình kết nối. Chỉ dành cho quản trị/IT.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ClearableOutlinedTextField(
+            value = state.passwordInput,
+            onValueChange = onPasswordChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Mật khẩu xác thực") },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            supportingText = if (state.passwordError != null) {
+                { Text(state.passwordError, color = MaterialTheme.colorScheme.error) }
+            } else {
+                null
+            },
+        )
+        Button(
+            onClick = onSubmit,
+            enabled = state.passwordInput.isNotBlank(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 50.dp),
+        ) {
+            Text("Xác nhận")
+        }
+    }
+}
+
+@Composable
+private fun ConnConfigPhaseContent(
+    state: ConnConfigDialogState,
+    onUrlChange: (String) -> Unit,
+    onKeyChange: (String) -> Unit,
+    onToggleKeyVisible: () -> Unit,
+    onTest: () -> Unit,
+    onSave: () -> Unit,
+) {
+    val busy = state.testState == ConnTestState.TESTING || state.saving
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ConnNoticeBox(
+            icon = Icons.Filled.ErrorOutline,
+            text = "Sau khi lưu cấu hình mới, bạn sẽ bị đăng xuất tự động để áp dụng thay đổi.",
+            container = MaterialTheme.colorScheme.tertiaryContainer,
+            content = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+
+        ClearableOutlinedTextField(
+            value = state.urlInput,
+            onValueChange = onUrlChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !busy,
+            label = { Text("Địa chỉ kết nối (URL)") },
+            placeholder = { Text("https://xxxxxxxx.supabase.co") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        )
+
+        ClearableOutlinedTextField(
+            value = state.keyInput,
+            onValueChange = onKeyChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !busy,
+            label = { Text("Khóa truy cập công khai (Key)") },
+            placeholder = { Text("sb_publishable_… hoặc eyJhbGci…") },
+            visualTransformation = if (state.showKey) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingContent = {
+                IconButton(onClick = onToggleKeyVisible) {
+                    Icon(
+                        imageVector = if (state.showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (state.showKey) "Ẩn khóa" else "Hiện khóa",
+                    )
+                }
+            },
+        )
+
+        OutlinedButton(
+            onClick = onTest,
+            enabled = !busy,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 50.dp),
+        ) {
+            if (state.testState == ConnTestState.TESTING) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.size(8.dp))
+                Text("Đang kiểm tra…")
+            } else {
+                Icon(Icons.Filled.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("  Kiểm tra kết nối")
+            }
+        }
+
+        if (state.testState == ConnTestState.OK) {
+            ConnNoticeBox(
+                icon = Icons.Filled.CheckCircle,
+                text = "Kết nối thành công. Bạn có thể lưu cấu hình.",
+                container = MaterialTheme.colorScheme.primaryContainer,
+                content = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        if (state.testState == ConnTestState.ERROR && state.testError != null) {
+            ConnNoticeBox(
+                icon = Icons.Filled.ErrorOutline,
+                text = state.testError,
+                container = MaterialTheme.colorScheme.errorContainer,
+                content = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
+
+        Button(
+            onClick = onSave,
+            enabled = state.testState == ConnTestState.OK && !state.saving,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 50.dp),
+        ) {
+            if (state.saving) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.size(8.dp))
+            }
+            Text("Lưu & Đăng xuất")
+        }
+    }
+}
+
+@Composable
+private fun ConnNoticeBox(
+    icon: ImageVector,
+    text: String,
+    container: androidx.compose.ui.graphics.Color,
+    content: androidx.compose.ui.graphics.Color,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = container, shape = RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = content,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = content,
+        )
     }
 }
 
