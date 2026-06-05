@@ -32,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
+import vn.delfi.xcloudwms.core.ui.components.ClearableOutlinedTextField
 import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.domain.model.GrLine
@@ -312,7 +312,7 @@ private fun ActiveLineCard(
         LocationPicker(state = state, viewModel = viewModel, showError = showLocationError)
 
         if (state.showQtyInput) {
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = state.qtyText,
                 onValueChange = viewModel::updateQty,
                 modifier = Modifier.fillMaxWidth(),
@@ -325,7 +325,7 @@ private fun ActiveLineCard(
         if (state.needsMfgInput || state.needsExpiryInput) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (state.needsMfgInput) {
-                    OutlinedTextField(
+                    ClearableOutlinedTextField(
                         value = state.mfgDateText,
                         onValueChange = viewModel::updateMfgDate,
                         modifier = Modifier.weight(1f),
@@ -334,7 +334,7 @@ private fun ActiveLineCard(
                     )
                 }
                 if (state.needsExpiryInput) {
-                    OutlinedTextField(
+                    ClearableOutlinedTextField(
                         value = state.expiryDateText,
                         onValueChange = viewModel::updateExpiryDate,
                         modifier = Modifier.weight(1f),

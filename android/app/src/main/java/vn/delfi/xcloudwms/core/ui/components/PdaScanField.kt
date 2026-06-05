@@ -7,10 +7,15 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.widget.AppCompatEditText
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -107,26 +113,126 @@ fun PdaScanField(
         val radius = with(density) { 16.dp.toPx() }
         val strokeWidth = with(density) { 1.dp.roundToPx() }
         val focusedStrokeWidth = with(density) { 2.dp.roundToPx() }
+        val clearButtonSpace = with(density) { 48.dp.roundToPx() }
 
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-            factory = { context ->
-                AppCompatEditText(context).apply {
-                    fieldRef.value = this
-                    isSingleLine = true
-                    maxLines = 1
-                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-                    hint = placeholder
-                    setTextColor(textColor)
-                    setHintTextColor(hintColor)
-                    setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
-                    importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-                    setTextIsSelectable(false)
-                    updateIme(settings)
-                    updateBorder(
-                        hasFocus = false,
+        Box(modifier = Modifier.fillMaxWidth()) {
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+                factory = { context ->
+                    AppCompatEditText(context).apply {
+                        fieldRef.value = this
+                        isSingleLine = true
+                        maxLines = 1
+                        inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                        hint = placeholder
+                        setTextColor(textColor)
+                        setHintTextColor(hintColor)
+                        setPadding(
+                            horizontalPadding,
+                            verticalPadding,
+                            horizontalPadding + clearButtonSpace,
+                            verticalPadding,
+                        )
+                        importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+                        setTextIsSelectable(false)
+                        updateIme(settings)
+                        updateBorder(
+                            hasFocus = false,
+                            enabled = enabled,
+                            containerColor = containerColor,
+                            outlineColor = outlineColor,
+                            focusedOutlineColor = focusedOutlineColor,
+                            disabledOutlineColor = disabledOutlineColor,
+                            radius = radius,
+                            strokeWidth = strokeWidth,
+                            focusedStrokeWidth = focusedStrokeWidth,
+                        )
+                        doAfterTextChanged { editable ->
+                            val newValue = editable?.toString().orEmpty()
+                            if (newValue != latestValue) {
+                                latestOnValueChange(newValue)
+                            }
+                        }
+                        setOnFocusChangeListener { view, hasFocus ->
+                            updateBorder(
+                                hasFocus = hasFocus,
+                                enabled = latestEnabled,
+                                containerColor = containerColor,
+                                outlineColor = outlineColor,
+                                focusedOutlineColor = focusedOutlineColor,
+                                disabledOutlineColor = disabledOutlineColor,
+                                radius = radius,
+                                strokeWidth = strokeWidth,
+                                focusedStrokeWidth = focusedStrokeWidth,
+                            )
+                            if (hasFocus && !latestSettings.softKeyboardEnabled) {
+                                hideKeyboard()
+                            } else if (
+                                latestEnabled &&
+                                latestKeepFocused &&
+                                !hasFocus &&
+                                latestSettings.submitMode != ScannerSubmitMode.TAB
+                            ) {
+                                view.post {
+                                    requestFocus()
+                                    if (!latestSettings.softKeyboardEnabled) {
+                                        hideKeyboard()
+                                    }
+                                }
+                            }
+                        }
+                        setOnEditorActionListener { _, actionId, event ->
+                            if (shouldHandleSubmit(actionId = actionId, event = event)) {
+                                dispatchSubmit(
+                                    settings = latestSettings,
+                                    field = this,
+                                    onSubmit = latestOnSubmit,
+                                    onMoveNext = latestOnMoveNext,
+                                )
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        setOnKeyListener { _, keyCode, event ->
+                            if (event.action != KeyEvent.ACTION_UP) {
+                                return@setOnKeyListener false
+                            }
+                            if (
+                                keyCode == KeyEvent.KEYCODE_ENTER ||
+                                keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
+                                keyCode == KeyEvent.KEYCODE_TAB
+                            ) {
+                                dispatchSubmit(
+                                    settings = latestSettings,
+                                    field = this,
+                                    onSubmit = latestOnSubmit,
+                                    onMoveNext = latestOnMoveNext,
+                                )
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                    }
+                },
+                update = { editText ->
+                    fieldRef.value = editText
+                    editText.isEnabled = enabled
+                    editText.isFocusable = enabled
+                    editText.isFocusableInTouchMode = enabled
+                    editText.hint = placeholder
+                    editText.setPadding(
+                        horizontalPadding,
+                        verticalPadding,
+                        horizontalPadding + clearButtonSpace,
+                        verticalPadding,
+                    )
+                    editText.updateIme(settings)
+                    editText.updateBorder(
+                        hasFocus = editText.hasFocus(),
                         enabled = enabled,
                         containerColor = containerColor,
                         outlineColor = outlineColor,
@@ -136,102 +242,36 @@ fun PdaScanField(
                         strokeWidth = strokeWidth,
                         focusedStrokeWidth = focusedStrokeWidth,
                     )
-                    doAfterTextChanged { editable ->
-                        val newValue = editable?.toString().orEmpty()
-                        if (newValue != latestValue) {
-                            latestOnValueChange(newValue)
-                        }
+                    if (editText.text?.toString().orEmpty() != value) {
+                        editText.setText(value)
+                        editText.setSelection(editText.text?.length ?: 0)
                     }
-                    setOnFocusChangeListener { view, hasFocus ->
-                        updateBorder(
-                            hasFocus = hasFocus,
-                            enabled = latestEnabled,
-                            containerColor = containerColor,
-                            outlineColor = outlineColor,
-                            focusedOutlineColor = focusedOutlineColor,
-                            disabledOutlineColor = disabledOutlineColor,
-                            radius = radius,
-                            strokeWidth = strokeWidth,
-                            focusedStrokeWidth = focusedStrokeWidth,
-                        )
-                        if (hasFocus && !latestSettings.softKeyboardEnabled) {
-                            hideKeyboard()
-                        } else if (
-                            latestEnabled &&
-                            latestKeepFocused &&
-                            !hasFocus &&
-                            latestSettings.submitMode != ScannerSubmitMode.TAB
-                        ) {
-                            view.post {
-                                requestFocus()
-                                if (!latestSettings.softKeyboardEnabled) {
-                                    hideKeyboard()
-                                }
+                    if (!settings.softKeyboardEnabled && editText.hasFocus()) {
+                        editText.hideKeyboard()
+                    }
+                },
+            )
+
+            if (enabled && value.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        latestOnValueChange("")
+                        fieldRef.value?.let { field ->
+                            field.requestFocus()
+                            if (!latestSettings.softKeyboardEnabled) {
+                                field.hideKeyboard()
                             }
                         }
-                    }
-                    setOnEditorActionListener { _, actionId, event ->
-                        if (shouldHandleSubmit(actionId = actionId, event = event)) {
-                            dispatchSubmit(
-                                settings = latestSettings,
-                                field = this,
-                                onSubmit = latestOnSubmit,
-                                onMoveNext = latestOnMoveNext,
-                            )
-                            true
-                        } else {
-                            false
-                        }
-                    }
-                    setOnKeyListener { _, keyCode, event ->
-                        if (event.action != KeyEvent.ACTION_UP) {
-                            return@setOnKeyListener false
-                        }
-                        if (
-                            keyCode == KeyEvent.KEYCODE_ENTER ||
-                            keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
-                            keyCode == KeyEvent.KEYCODE_TAB
-                        ) {
-                            dispatchSubmit(
-                                settings = latestSettings,
-                                field = this,
-                                onSubmit = latestOnSubmit,
-                                onMoveNext = latestOnMoveNext,
-                            )
-                            true
-                        } else {
-                            false
-                        }
-                    }
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Xoá nội dung",
+                    )
                 }
-            },
-            update = { editText ->
-                fieldRef.value = editText
-                editText.isEnabled = enabled
-                editText.isFocusable = enabled
-                editText.isFocusableInTouchMode = enabled
-                editText.hint = placeholder
-                editText.updateIme(settings)
-                editText.updateBorder(
-                    hasFocus = editText.hasFocus(),
-                    enabled = enabled,
-                    containerColor = containerColor,
-                    outlineColor = outlineColor,
-                    focusedOutlineColor = focusedOutlineColor,
-                    disabledOutlineColor = disabledOutlineColor,
-                    radius = radius,
-                    strokeWidth = strokeWidth,
-                    focusedStrokeWidth = focusedStrokeWidth,
-                )
-                if (editText.text?.toString().orEmpty() != value) {
-                    editText.setText(value)
-                    editText.setSelection(editText.text?.length ?: 0)
-                }
-                if (!settings.softKeyboardEnabled && editText.hasFocus()) {
-                    editText.hideKeyboard()
-                }
-            },
-        )
+            }
+        }
 
         supportingText?.let { hint ->
             Text(

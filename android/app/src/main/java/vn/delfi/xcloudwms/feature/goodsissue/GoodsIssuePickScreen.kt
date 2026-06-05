@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
+import vn.delfi.xcloudwms.core.ui.components.ClearableOutlinedTextField
 import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.domain.model.GiLine
@@ -260,7 +260,7 @@ private fun ActiveLineCard(state: GoodsIssuePickUiState, viewModel: GoodsIssuePi
         }
 
         if (state.showQtyInput) {
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = state.qtyText,
                 onValueChange = viewModel::updateQty,
                 modifier = Modifier.fillMaxWidth(),

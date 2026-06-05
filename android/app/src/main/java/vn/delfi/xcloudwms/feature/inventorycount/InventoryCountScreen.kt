@@ -33,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
+import vn.delfi.xcloudwms.core.ui.components.ClearableOutlinedTextField
 import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
 import vn.delfi.xcloudwms.domain.model.IcLine
@@ -85,7 +85,7 @@ fun InventoryCountScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Đóng phiếu kiểm kê. Việc cân bằng/duyệt điều chỉnh tồn thực hiện trên webapp.")
-                    OutlinedTextField(
+                    ClearableOutlinedTextField(
                         value = state.finishNote,
                         onValueChange = viewModel::updateFinishNote,
                         modifier = Modifier.fillMaxWidth(),
@@ -297,7 +297,7 @@ private fun ActiveLineCard(state: InventoryCountUiState, viewModel: InventoryCou
         LocationPicker(state = state, viewModel = viewModel)
 
         if (state.showQtyInput) {
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = state.qtyText,
                 onValueChange = viewModel::updateQty,
                 modifier = Modifier.fillMaxWidth(),
@@ -369,7 +369,7 @@ private fun LocationPicker(state: InventoryCountUiState, viewModel: InventoryCou
     var expanded by remember { mutableStateOf(false) }
     val filtered = state.filteredLocations()
     Box {
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = state.locationQuery,
             onValueChange = {
                 viewModel.updateLocationQuery(it)
@@ -378,7 +378,7 @@ private fun LocationPicker(state: InventoryCountUiState, viewModel: InventoryCou
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = { Text("Vị trí (tuỳ chọn)") },
-            trailingIcon = {
+            trailingContent = {
                 TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Đóng" else "Chọn") }
             },
             supportingText = {

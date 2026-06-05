@@ -497,6 +497,37 @@ File này lưu mapping giữa prompt/user request và commit message để truy 
   - Device license/pending-device chưa nằm trong prompt phase này nên chưa được native hóa; session restore hiện tập trung vào auth/profile/permission/warehouse context.
   - `SupabaseAuthRepository` còn warning unchecked cast do phải chịu được nhiều shape JSON khác nhau từ `profiles/users/permissions/user_warehouses`.
 
+## 2026-06-04 21:55 — Native clear buttons and QR setup scan
+
+- Prompt summary: bổ sung thêm trên native app android: 1. các input nhập text có nút clear hết text trong input chỉ 1 lần bấm thay vì phải nhấp con trỏ select all rồi mới xoá 2. chỗ nhập thông tin cấu hình kết nối làm giống web scanner cho thêm option quét mã bằng native app scan reader hoặc quét mã bằng camera rồi xử lý qrcode đã mã hoá đó y như giống web scanner đã làm để thực hiện cấu hình kết nối nhanh
+- Ticket/Issue ID: —
+- Scope:
+  - `app/android`: thêm field clearable dùng chung, clear action cho `PdaScanField`, parser QR `XCWMS1`, nút scan camera native cho flow cấu hình kết nối, và listener scanner manager để nhận QR từ PDA reader.
+  - `app/docs`: không đổi DB/RPC/API contract, chỉ cập nhật prompt map theo DoD.
+- Main files changed:
+  - `app/android/app/build.gradle.kts`
+  - `app/android/gradle/libs.versions.toml`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/config/ConnectionConfigQr.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/navigation/AppNavHost.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/ClearableOutlinedTextField.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/core/ui/components/PdaScanField.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginScreen.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginUiState.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/LoginViewModel.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/login/ConnectionQrCameraScanButton.kt`
+  - `app/android/app/src/main/java/vn/delfi/xcloudwms/feature/{goodsissue/goodsreceipt/inventorycount/putaway/scannertest}/**Screen.kt`
+  - `app/prompts/prompt_map.md`
+  - `docs/commit_prompt_map.md`
+- Tests run:
+  - `cd app/android && ./gradlew :app:assembleDevDebug` ✅
+  - `git -C app diff --check` ✅
+  - `rg -n "[[:blank:]]$" app/prompts/prompt_map.md docs/commit_prompt_map.md` ✅
+- Commit message: `feat(app-ui): add qr setup scan and clearable text inputs`
+- Notes/Risks:
+  - Camera scan trên màn cấu hình kết nối hiện dùng Google Code Scanner native để mở camera quét QR nhanh; flow này phụ thuộc Google Play services trên thiết bị.
+  - Hardware scanner flow cho QR config chỉ auto-apply khi mã có prefix `XCWMS1:` để tránh nuốt nhầm các barcode nghiệp vụ khác ở màn đăng nhập.
+  - Chưa smoke test trực tiếp trên PDA thật cho cả hai nguồn quét (`reader` và `camera`) trong môi trường hiện tại.
+
 ## 2026-05-30 11:13 — Phase 1 Android Compose foundation
 
 - Prompt summary: Tạo native Android project trong `app/android` cho Xcloud WMS Scanner với Kotlin, Jetpack Compose, Material 3, Navigation Compose, ViewModel + StateFlow, logger an toàn, network/scanner placeholders và ba màn chờ `Đăng nhập` / `Trang chủ` / `Kiểm tra máy quét`.

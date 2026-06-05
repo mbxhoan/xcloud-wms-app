@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.delfi.xcloudwms.core.scanner.ScannerMode
 import vn.delfi.xcloudwms.core.scanner.ScannerSubmitMode
+import vn.delfi.xcloudwms.core.ui.components.ClearableOutlinedTextField
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.PdaScanFieldSettings
@@ -195,7 +196,7 @@ fun ScannerTestScreen(
 
         SectionCard(title = "Giả lập mã quét thủ công") {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                ClearableOutlinedTextField(
                     value = state.manualCode,
                     onValueChange = viewModel::updateManualCode,
                     modifier = Modifier.fillMaxWidth(),
@@ -238,7 +239,7 @@ fun ScannerTestScreen(
                 )
             }
 
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = state.broadcastAction,
                 onValueChange = viewModel::updateBroadcastAction,
                 modifier = Modifier.fillMaxWidth(),
@@ -246,7 +247,7 @@ fun ScannerTestScreen(
                 label = { Text("Tên action") },
                 supportingText = { Text("Gợi ý cho PM85: dùng cùng action này trong Custom Intent") },
             )
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = state.broadcastDataKey,
                 onValueChange = viewModel::updateBroadcastDataKey,
                 modifier = Modifier.fillMaxWidth(),
@@ -254,7 +255,7 @@ fun ScannerTestScreen(
                 label = { Text("Khoá dữ liệu chứa mã") },
                 supportingText = { Text("Gợi ý: data") },
             )
-            OutlinedTextField(
+            ClearableOutlinedTextField(
                 value = state.broadcastSymbologyKey,
                 onValueChange = viewModel::updateBroadcastSymbologyKey,
                 modifier = Modifier.fillMaxWidth(),

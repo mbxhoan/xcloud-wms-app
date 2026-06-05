@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import vn.delfi.xcloudwms.core.config.AppConfig
+import vn.delfi.xcloudwms.core.config.parseConnectionConfigQr
 import vn.delfi.xcloudwms.core.logging.SafeLogger
 import vn.delfi.xcloudwms.data.session.SessionRepository
 
@@ -99,6 +100,74 @@ class LoginViewModel(
         }
     }
 
+    fun updateConnectionQrInput(value: String) {
+        mutableUiState.update {
+            it.copy(
+                connectionQrInput = value,
+                connectionErrorMessage = null,
+                connectionSuccessMessage = null,
+            )
+        }
+    }
+
+    fun showConnectionError(message: String) {
+        mutableUiState.update {
+            it.copy(
+                connectionErrorMessage = message,
+                connectionSuccessMessage = null,
+            )
+        }
+    }
+
+    fun applyConnectionQr(raw: String, sourceLabel: String? = null) {
+        val snapshot = mutableUiState.value
+        if (snapshot.isConnectionBusy || snapshot.isLoading) {
+            return
+        }
+
+        val parsedConfig = parseConnectionConfigQr(raw)
+        if (parsedConfig == null) {
+            mutableUiState.update {
+                it.copy(
+                    connectionQrInput = raw.trim(),
+                    connectionErrorMessage = "Mã QR không hợp lệ hoặc không phải mã cài đặt WMS.",
+                    connectionSuccessMessage = null,
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            mutableUiState.update {
+                it.copy(
+                    connectionQrInput = raw.trim(),
+                    connectionUrl = parsedConfig.normalizedUrl,
+                    anonKey = parsedConfig.anonKey,
+                    isApplyingConnectionQr = true,
+                    connectionErrorMessage = null,
+                    connectionSuccessMessage = when (sourceLabel) {
+                        null -> "Đang kiểm tra cấu hình từ mã QR..."
+                        else -> "Đang kiểm tra cấu hình từ $sourceLabel..."
+                    },
+                )
+            }
+
+            testAndSaveConnection(
+                url = parsedConfig.normalizedUrl,
+                anonKey = parsedConfig.anonKey,
+                successMessage = when (sourceLabel) {
+                    null -> "Đã lưu cấu hình kết nối từ mã QR."
+                    else -> "Đã lưu cấu hình kết nối từ $sourceLabel."
+                },
+                onBusyChange = { busy ->
+                    mutableUiState.update { current ->
+                        current.copy(isApplyingConnectionQr = busy)
+                    }
+                },
+            )
+        }
+    }
+
     fun testConnection() {
         val snapshot = mutableUiState.value
         if (snapshot.isConnectionBusy || snapshot.isLoading) {
@@ -114,24 +183,17 @@ class LoginViewModel(
                 )
             }
 
-            sessionRepository.testConnectionConfig(
+            runConnectionTest(
                 url = snapshot.connectionUrl,
                 anonKey = snapshot.anonKey,
             ).onSuccess {
                 mutableUiState.update {
-                    it.copy(
-                        isTestingConnection = false,
-                        connectionSuccessMessage = "Kết nối thành công. Bạn có thể lưu cấu hình.",
-                    )
+                    it.copy(connectionSuccessMessage = "Kết nối thành công. Bạn có thể lưu cấu hình.")
                 }
-            }.onFailure { throwable ->
-                logger.error("LoginViewModel", "Kiểm tra kết nối thất bại", throwable)
-                mutableUiState.update {
-                    it.copy(
-                        isTestingConnection = false,
-                        connectionErrorMessage = throwable.message ?: "Không thể kiểm tra kết nối.",
-                    )
-                }
+            }
+
+            mutableUiState.update {
+                it.copy(isTestingConnection = false)
             }
         }
     }
@@ -151,38 +213,64 @@ class LoginViewModel(
                 )
             }
 
-            sessionRepository.testConnectionConfig(
+            testAndSaveConnection(
                 url = snapshot.connectionUrl,
                 anonKey = snapshot.anonKey,
-            ).onFailure { throwable ->
-                logger.error("LoginViewModel", "Kiểm tra cấu hình trước khi lưu thất bại", throwable)
-                mutableUiState.update {
-                    it.copy(
-                        isSavingConnection = false,
-                        connectionErrorMessage = throwable.message ?: "Không thể lưu cấu hình kết nối.",
-                    )
-                }
-                return@launch
+                successMessage = "Đã lưu cấu hình kết nối.",
+                onBusyChange = { busy ->
+                    mutableUiState.update { current ->
+                        current.copy(isSavingConnection = busy)
+                    }
+                },
+            )
+        }
+    }
+
+    private suspend fun testAndSaveConnection(
+        url: String,
+        anonKey: String,
+        successMessage: String,
+        onBusyChange: (Boolean) -> Unit,
+    ) {
+        runConnectionTest(url = url, anonKey = anonKey)
+            .onFailure {
+                onBusyChange(false)
+                return
             }
 
-            sessionRepository.saveConnectionConfig(
-                url = snapshot.connectionUrl,
-                anonKey = snapshot.anonKey,
-            ).onSuccess {
-                mutableUiState.update {
-                    it.copy(
-                        isSavingConnection = false,
-                        connectionSuccessMessage = "Đã lưu cấu hình kết nối.",
-                    )
-                }
-            }.onFailure { throwable ->
-                logger.error("LoginViewModel", "Lưu cấu hình kết nối thất bại", throwable)
-                mutableUiState.update {
-                    it.copy(
-                        isSavingConnection = false,
-                        connectionErrorMessage = throwable.message ?: "Không thể lưu cấu hình kết nối.",
-                    )
-                }
+        sessionRepository.saveConnectionConfig(
+            url = url,
+            anonKey = anonKey,
+        ).onSuccess {
+            mutableUiState.update {
+                it.copy(connectionSuccessMessage = successMessage)
+            }
+        }.onFailure { throwable ->
+            logger.error("LoginViewModel", "Lưu cấu hình kết nối thất bại", throwable)
+            mutableUiState.update {
+                it.copy(
+                    connectionErrorMessage = throwable.message ?: "Không thể lưu cấu hình kết nối.",
+                    connectionSuccessMessage = null,
+                )
+            }
+        }
+        onBusyChange(false)
+    }
+
+    private suspend fun runConnectionTest(
+        url: String,
+        anonKey: String,
+    ): Result<Unit> {
+        return sessionRepository.testConnectionConfig(
+            url = url,
+            anonKey = anonKey,
+        ).onFailure { throwable ->
+            logger.error("LoginViewModel", "Kiểm tra kết nối thất bại", throwable)
+            mutableUiState.update {
+                it.copy(
+                    connectionErrorMessage = throwable.message ?: "Không thể kiểm tra kết nối.",
+                    connectionSuccessMessage = null,
+                )
             }
         }
     }

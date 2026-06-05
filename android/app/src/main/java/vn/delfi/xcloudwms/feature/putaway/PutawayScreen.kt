@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import vn.delfi.xcloudwms.core.ui.components.ClearableOutlinedTextField
 import vn.delfi.xcloudwms.core.ui.components.InfoPill
 import vn.delfi.xcloudwms.core.ui.components.PdaScanField
 import vn.delfi.xcloudwms.core.ui.components.SectionCard
@@ -157,7 +158,7 @@ fun PutawayScreen(
 private fun StartSessionCard(state: PutawayUiState, viewModel: PutawayViewModel) {
     SectionCard(title = "Tạo phiên sắp xếp") {
         InfoPill(text = "Kho: ${state.warehouseLabel}")
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = state.sessionNotes,
             onValueChange = viewModel::updateSessionNotes,
             modifier = Modifier.fillMaxWidth(),
@@ -260,7 +261,7 @@ private fun StepperCard(state: PutawayUiState, viewModel: PutawayViewModel) {
             enabled = state.canEditSession,
         )
 
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = state.lineNotes,
             onValueChange = viewModel::updateLineNotes,
             modifier = Modifier.fillMaxWidth(),
@@ -339,7 +340,7 @@ private fun QtyStepper(qtyText: String, enabled: Boolean, onChange: (String) -> 
             modifier = Modifier.size(52.dp),
         ) { Text("−", style = MaterialTheme.typography.titleLarge) }
 
-        OutlinedTextField(
+        ClearableOutlinedTextField(
             value = qtyText,
             onValueChange = onChange,
             modifier = Modifier.weight(1f),

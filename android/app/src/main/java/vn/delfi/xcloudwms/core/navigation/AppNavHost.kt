@@ -204,7 +204,11 @@ fun AppNavHost(appContainer: AppContainer) {
                     logger = appContainer.logger,
                 ),
             )
-            LoginScreen(viewModel = viewModel)
+            LoginScreen(
+                viewModel = viewModel,
+                scannerManager = appContainer.scannerManager,
+                cameraScanEnabled = appContainer.appConfig.enableCameraScanFallback,
+            )
         }
 
         composable(AppDestination.WarehouseSwitch.route) {

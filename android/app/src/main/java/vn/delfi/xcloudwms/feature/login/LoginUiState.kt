@@ -11,11 +11,13 @@ data class LoginUiState(
     val connectionLabel: String? = null,
     val connectionUrl: String = "",
     val anonKey: String = "",
+    val connectionQrInput: String = "",
     val isTestingConnection: Boolean = false,
     val isSavingConnection: Boolean = false,
+    val isApplyingConnectionQr: Boolean = false,
     val connectionErrorMessage: String? = null,
     val connectionSuccessMessage: String? = null,
 ) {
     val isConnectionBusy: Boolean
-        get() = isTestingConnection || isSavingConnection
+        get() = isTestingConnection || isSavingConnection || isApplyingConnectionQr
 }

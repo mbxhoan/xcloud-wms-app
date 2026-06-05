@@ -9,6 +9,7 @@ composeBom = "2024.06.00"
 navigationCompose = "2.7.7"
 coroutines = "1.8.1"
 material = "1.12.0"
+googleCodeScanner = "16.1.0"
 junit = "4.13.2"
 
 [libraries]
@@ -28,6 +29,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+google-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "googleCodeScanner" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]
